@@ -1,49 +1,71 @@
 ﻿using Rug.Osc;
 using System;
-using System.IO;
-using System.Text;
-using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using System.Drawing;
 using System.Windows.Forms;
 
 class Program
 {
     const int MaxLogLines = 500;
+    const int VrChatReceivePort = 9001;
+    const int VrChatSendPort = 9000;
+    const int CommandPort = 8765;
 
-    static ConcurrentDictionary<string, object> parameters = new();
+    static readonly ConcurrentDictionary<string, object> parameters = new();
+    static readonly object settingsLock = new();
 
     static NotifyIcon? trayIcon;
-    static ToolStripMenuItem? toggleLogWindow;
-    static LogWindow? logWindow;
-    static bool exiting = false;
+    static ToolStripMenuItem? toggleWindowMenuItem;
+    static MainWindow? mainWindow;
+    static bool exiting;
 
-    static readonly string saveFilePath = Path.Combine(
+    static readonly string settingsFilePath = Path.Combine(
         AppContext.BaseDirectory,
-        "saved-state.json"
+        "settings.json"
     );
 
-    class SavedParameterState
+    static AppSettings settings = new();
+
+    class AppSettings
     {
-        public bool TiaraOn { get; set; }
-        public bool RoseOn { get; set; }
-        public bool WingsOn { get; set; }
-        public int Color { get; set; }
+        public bool LogAllParameters { get; set; } = true;
+        public HashSet<string> LoggedParameters { get; set; } = new(
+            StringComparer.Ordinal
+        );
     }
 
-    class LogWindow : Form
+    class MainWindow : Form
     {
         private readonly TextBox logTextBox;
+        private readonly RadioButton logAllRadioButton;
+        private readonly RadioButton logSelectedRadioButton;
+        private readonly CheckedListBox parameterList;
+        private readonly TextBox parameterNameTextBox;
+        private bool refreshingParameterList;
 
-        public LogWindow()
+        public MainWindow()
         {
             Text = "VRChat OSC Bridge";
-            Width = 800;
-            Height = 500;
+            Width = 850;
+            Height = 550;
             StartPosition = FormStartPosition.CenterScreen;
+
+            TabControl tabs = new()
+            {
+                Dock = DockStyle.Fill
+            };
+
+            TabPage logTab = new("Log");
+            TabPage parametersTab = new("Parameter Logging");
 
             logTextBox = new TextBox
             {
@@ -51,19 +73,129 @@ class Program
                 Multiline = true,
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Both,
-                WordWrap = false
+                WordWrap = false,
+                Font = new Font("Consolas", 10f),
+                BackColor = Color.Black,
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.None
             };
 
-            logTextBox.Font = new Font(
-                "Consolas",
-                10f
-            );
+            logTab.Controls.Add(logTextBox);
 
-            logTextBox.BackColor = Color.Black;
-            logTextBox.ForeColor = Color.White;
-            logTextBox.BorderStyle = BorderStyle.None;
+            TableLayoutPanel settingsLayout = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 5,
+                Padding = new Padding(12)
+            };
 
-            Controls.Add(logTextBox);
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            Label instructions = new()
+            {
+                AutoSize = true,
+                Text = "Parameters are discovered automatically when VRChat sends them. " +
+                    "Choose which ones should appear in the log."
+            };
+
+            logAllRadioButton = new RadioButton
+            {
+                AutoSize = true,
+                Text = "Log all detected parameters"
+            };
+
+            logSelectedRadioButton = new RadioButton
+            {
+                AutoSize = true,
+                Text = "Log only checked parameters"
+            };
+
+            parameterList = new CheckedListBox
+            {
+                Dock = DockStyle.Fill,
+                CheckOnClick = true,
+                Sorted = true
+            };
+
+            FlowLayoutPanel addPanel = new()
+            {
+                AutoSize = true,
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false
+            };
+
+            parameterNameTextBox = new TextBox
+            {
+                Width = 350,
+                PlaceholderText = "Parameter name, for example Outfit/Color"
+            };
+
+            Button addButton = new()
+            {
+                AutoSize = true,
+                Text = "Add Parameter"
+            };
+
+            addButton.Click += (_, _) => AddParameterFromTextBox();
+            parameterNameTextBox.KeyDown += (_, e) =>
+            {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    e.SuppressKeyPress = true;
+                    AddParameterFromTextBox();
+                }
+            };
+
+            addPanel.Controls.Add(parameterNameTextBox);
+            addPanel.Controls.Add(addButton);
+
+            settingsLayout.Controls.Add(instructions, 0, 0);
+            settingsLayout.Controls.Add(logAllRadioButton, 0, 1);
+            settingsLayout.Controls.Add(logSelectedRadioButton, 0, 2);
+            settingsLayout.Controls.Add(parameterList, 0, 3);
+            settingsLayout.Controls.Add(addPanel, 0, 4);
+
+            parametersTab.Controls.Add(settingsLayout);
+            tabs.TabPages.Add(logTab);
+            tabs.TabPages.Add(parametersTab);
+            Controls.Add(tabs);
+
+            logAllRadioButton.CheckedChanged += (_, _) =>
+            {
+                if (logAllRadioButton.Checked)
+                {
+                    SetLogAllParameters(true);
+                }
+            };
+
+            logSelectedRadioButton.CheckedChanged += (_, _) =>
+            {
+                if (logSelectedRadioButton.Checked)
+                {
+                    SetLogAllParameters(false);
+                }
+            };
+
+            parameterList.ItemCheck += (_, e) =>
+            {
+                if (refreshingParameterList)
+                {
+                    return;
+                }
+
+                string parameter = parameterList.Items[e.Index].ToString()!;
+                bool enabled = e.NewValue == CheckState.Checked;
+
+                BeginInvoke(new Action(() => SetParameterLogging(parameter, enabled)));
+            };
+
+            RefreshSettingsControls();
         }
 
         public void AppendLogLine(string line)
@@ -97,6 +229,77 @@ class Program
             logTextBox.ScrollToCaret();
         }
 
+        public void AddDetectedParameter(string parameter)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action<string>(AddDetectedParameter), parameter);
+                return;
+            }
+
+            if (!parameterList.Items.Contains(parameter))
+            {
+                bool shouldBeChecked;
+
+                lock (settingsLock)
+                {
+                    shouldBeChecked = settings.LoggedParameters.Contains(parameter);
+                }
+
+                parameterList.Items.Add(parameter, shouldBeChecked);
+            }
+        }
+
+        private void AddParameterFromTextBox()
+        {
+            string parameter = parameterNameTextBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(parameter))
+            {
+                return;
+            }
+
+            AddDetectedParameter(parameter);
+            SetParameterLogging(parameter, true);
+            SetItemChecked(parameter, true);
+            parameterNameTextBox.Clear();
+        }
+
+        private void SetItemChecked(string parameter, bool isChecked)
+        {
+            int index = parameterList.Items.IndexOf(parameter);
+
+            if (index < 0)
+            {
+                return;
+            }
+
+            refreshingParameterList = true;
+            parameterList.SetItemChecked(index, isChecked);
+            refreshingParameterList = false;
+        }
+
+        private void RefreshSettingsControls()
+        {
+            refreshingParameterList = true;
+
+            lock (settingsLock)
+            {
+                logAllRadioButton.Checked = settings.LogAllParameters;
+                logSelectedRadioButton.Checked = !settings.LogAllParameters;
+
+                foreach (string parameter in settings.LoggedParameters.OrderBy(
+                    parameter => parameter,
+                    StringComparer.Ordinal
+                ))
+                {
+                    parameterList.Items.Add(parameter, true);
+                }
+            }
+
+            refreshingParameterList = false;
+        }
+
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
@@ -105,7 +308,7 @@ class Program
             {
                 Hide();
                 WindowState = FormWindowState.Normal;
-                UpdateLogWindowMenuText();
+                UpdateWindowMenuText();
             }
         }
 
@@ -115,7 +318,7 @@ class Program
             {
                 e.Cancel = true;
                 Hide();
-                UpdateLogWindowMenuText();
+                UpdateWindowMenuText();
                 return;
             }
 
@@ -185,57 +388,62 @@ class Program
             Visible = true
         };
 
-        ContextMenuStrip menu = new ContextMenuStrip();
+        ContextMenuStrip menu = new();
+        toggleWindowMenuItem = new ToolStripMenuItem("Show Window");
+        ToolStripMenuItem exitMenuItem = new("Exit");
 
-        toggleLogWindow =
-            new ToolStripMenuItem("Show Console");
-
-        ToolStripMenuItem exit =
-            new ToolStripMenuItem("Exit");
-
-        toggleLogWindow.Click += (sender, e) =>
+        toggleWindowMenuItem.Click += (_, _) =>
         {
-            if (logWindow == null)
+            if (mainWindow == null)
             {
                 return;
             }
 
-            if (logWindow.Visible)
+            if (mainWindow.Visible)
             {
-                logWindow.Hide();
-                UpdateLogWindowMenuText();
+                mainWindow.Hide();
             }
             else
             {
-                logWindow.Show();
-                logWindow.Activate();
-                UpdateLogWindowMenuText();
+                mainWindow.Show();
+                mainWindow.Activate();
             }
+
+            UpdateWindowMenuText();
         };
 
-        exit.Click += (sender, e) =>
+        exitMenuItem.Click += (_, _) =>
         {
             exiting = true;
-            trayIcon.Visible = false;
-            logWindow?.Close();
+
+            if (trayIcon != null)
+            {
+                trayIcon.Visible = false;
+            }
+
+            mainWindow?.Close();
             Application.Exit();
         };
 
-        menu.Items.Add(toggleLogWindow);
+        menu.Items.Add(toggleWindowMenuItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(exit);
-
+        menu.Items.Add(exitMenuItem);
         trayIcon.ContextMenuStrip = menu;
+        trayIcon.DoubleClick += (_, _) =>
+        {
+            mainWindow?.Show();
+            mainWindow?.Activate();
+            UpdateWindowMenuText();
+        };
     }
 
-    static void UpdateLogWindowMenuText()
+    static void UpdateWindowMenuText()
     {
-        if (toggleLogWindow != null)
+        if (toggleWindowMenuItem != null)
         {
-            toggleLogWindow.Text =
-                logWindow?.Visible == true
-                    ? "Hide Console"
-                    : "Show Console";
+            toggleWindowMenuItem.Text = mainWindow?.Visible == true
+                ? "Hide Window"
+                : "Show Window";
         }
     }
 
@@ -245,10 +453,11 @@ class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
-        logWindow = new LogWindow();
+        LoadSettings();
+        mainWindow = new MainWindow();
 
-        LogTextWriter logWriter = new LogTextWriter(
-            line => logWindow.AppendLogLine(line)
+        LogTextWriter logWriter = new(
+            line => mainWindow.AppendLogLine(line)
         );
 
         Console.SetOut(logWriter);
@@ -256,7 +465,9 @@ class Program
 
         CreateTrayIcon();
 
-        Console.WriteLine("VRChat OSC Bridge Started");
+        Console.WriteLine("VRChat OSC Bridge started.");
+        Console.WriteLine($"Listening for commands on UDP port {CommandPort}.");
+        Console.WriteLine("Commands: toggle, random, set");
 
         Task.Run(ListenForVRChat);
         Task.Run(ListenForCommands);
@@ -264,219 +475,361 @@ class Program
         Application.Run();
     }
 
-	static void ListenForVRChat()
-	{
-		using OscReceiver receiver = new OscReceiver(9001);
-
-		receiver.Connect();
-
-		Console.WriteLine("Listening for VRChat OSC...");
-
-		while (true)
-		{
-			if (receiver.TryReceive(out OscPacket packet))
-			{
-				if (packet is OscMessage message)
-				{
-					if (message.Address.StartsWith("/avatar/parameters/"))
-                    {
-                        string parameter =
-                            message.Address.Replace(
-                                "/avatar/parameters/",
-                                ""
-                            );
-
-                        object value = message[0];
-
-                        if (parameter == "TiaraOn" || parameter == "Wings/ToggledOn" || parameter == "RoseOn" || parameter == "Color")
-                        {
-                            parameters[parameter] = value;
-
-                            Console.WriteLine(
-                                $"{parameter} = {value} ({value.GetType().Name})"
-                            );
-                        }
-                    }
-				}
-			}
-		}
-	}
-    
-    static void ListenForCommands()
+    static void ListenForVRChat()
     {
-        using UdpClient listener = new UdpClient(8765);
-
-        Console.WriteLine(
-            "Listening for commands on UDP port 8765..."
-        );
-
-        while (true)
+        try
         {
-            IPEndPoint endpoint = new IPEndPoint(
-                IPAddress.Any,
-                8765
-            );
+            using OscReceiver receiver = new(VrChatReceivePort);
+            receiver.Connect();
 
-            byte[] data = listener.Receive(
-                ref endpoint
-            );
+            Console.WriteLine($"Listening for VRChat OSC on port {VrChatReceivePort}.");
 
-            string command = Encoding.UTF8.GetString(data).Trim();
-
-            Console.WriteLine(
-                $"Command received: {command}"
-            );
-
-            string[] parts = command.Split(' ');
-
-            if (parts[0] == "save")
+            while (true)
             {
-                SaveParameterState();
+                if (!receiver.TryReceive(out OscPacket packet) ||
+                    packet is not OscMessage message ||
+                    !message.Address.StartsWith("/avatar/parameters/", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string parameter = message.Address["/avatar/parameters/".Length..];
+                object value = message[0];
+                parameters[parameter] = value;
+                mainWindow?.AddDetectedParameter(parameter);
+
+                if (ShouldLogParameter(parameter))
+                {
+                    Console.WriteLine(
+                        $"{parameter} = {FormatValue(value)} ({value.GetType().Name})"
+                    );
+                }
             }
-            else if (parts[0] == "load")
-            {
-                LoadParameterState();
-            }
-            else if (parts.Length >= 2 && parts[0] == "toggle")
-            {
-                ToggleParameter(parts[1]);
-            }
-            else if (parts.Length >= 3 && parts[0] == "set")
-            {
-                SetParameter(
-                    parts[1],
-                    int.Parse(parts[2])
-                );
-            }
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"VRChat OSC listener stopped: {exception.Message}");
         }
     }
 
-
-	static void ToggleParameter(string parameter)
+    static void ListenForCommands()
     {
-        if (!parameters.TryGetValue(parameter, out object? value))
+        try
         {
-            Console.WriteLine(
-                $"{parameter} has no known state."
-            );
+            using UdpClient listener = new(CommandPort);
 
+            while (true)
+            {
+                IPEndPoint endpoint = new(IPAddress.Any, CommandPort);
+                byte[] data = listener.Receive(ref endpoint);
+                string command = Encoding.UTF8.GetString(data).Trim();
+
+                if (string.IsNullOrWhiteSpace(command))
+                {
+                    continue;
+                }
+
+                Console.WriteLine($"Command received: {command}");
+                ExecuteCommand(command);
+            }
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"Command listener stopped: {exception.Message}");
+        }
+    }
+
+    static void ExecuteCommand(string command)
+    {
+        string[] parts = command.Split(
+            ' ',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+        );
+
+        if (parts.Length == 0)
+        {
             return;
         }
 
-        if (value is bool boolValue)
+        try
         {
-            SetParameter(parameter, !boolValue);
+            switch (parts[0].ToLowerInvariant())
+            {
+                case "toggle" when parts.Length == 2:
+                    ToggleParameter(parts[1]);
+                    break;
 
-            Console.WriteLine(
-                $"{parameter}: {boolValue} -> {!boolValue}"
-            );
+                case "random" when parts.Length == 4:
+                    RandomizeParameter(parts[1], parts[2], parts[3]);
+                    break;
+
+                case "set" when parts.Length == 3:
+                    SetParameterFromText(parts[1], parts[2]);
+                    break;
+
+                default:
+                    Console.WriteLine("Invalid command. Use:");
+                    Console.WriteLine("  toggle <parameter>");
+                    Console.WriteLine("  random <parameter> <minimum> <maximum>");
+                    Console.WriteLine("  set <parameter> <value>");
+                    break;
+            }
         }
-        else if (value is int intValue)
+        catch (Exception exception)
         {
+            Console.WriteLine($"Command failed: {exception.Message}");
+        }
+    }
+
+    static void ToggleParameter(string parameter)
+    {
+        if (!parameters.TryGetValue(parameter, out object? currentValue))
+        {
+            Console.WriteLine(
+                $"{parameter} has no known state. Make sure VRChat has sent it first."
+            );
+            return;
+        }
+
+        if (currentValue is not bool boolValue)
+        {
+            Console.WriteLine($"{parameter} is not a Boolean parameter.");
+            return;
+        }
+
+        bool newValue = !boolValue;
+        SendParameter(parameter, newValue);
+        Console.WriteLine($"{parameter}: {boolValue} -> {newValue}");
+    }
+
+    static void RandomizeParameter(
+        string parameter,
+        string minimumText,
+        string maximumText
+    )
+    {
+        if (!parameters.TryGetValue(parameter, out object? currentValue))
+        {
+            Console.WriteLine(
+                $"{parameter} has no known state. Make sure VRChat has sent it first."
+            );
+            return;
+        }
+
+        if (currentValue is int currentInt)
+        {
+            int minimum = int.Parse(minimumText, CultureInfo.InvariantCulture);
+            int maximum = int.Parse(maximumText, CultureInfo.InvariantCulture);
+
+            if (minimum > maximum)
+            {
+                throw new ArgumentException("The minimum cannot be greater than the maximum.");
+            }
+
+            long valueCount = (long)maximum - minimum + 1;
+
+            if (valueCount == 1 && minimum == currentInt)
+            {
+                throw new ArgumentException(
+                    "The range must contain a value different from the current value."
+                );
+            }
+
             int newValue;
 
             do
             {
-                newValue = Random.Shared.Next(1, 5);
+                newValue = (int)Random.Shared.NextInt64(
+                    minimum,
+                    (long)maximum + 1
+                );
             }
-            while (newValue == intValue);
+            while (newValue == currentInt);
 
-            SetParameter(parameter, newValue);
+            SendParameter(parameter, newValue);
+            Console.WriteLine($"{parameter}: {currentInt} -> {newValue}");
+            return;
+        }
 
+        if (currentValue is float currentFloat)
+        {
+            float minimum = float.Parse(minimumText, CultureInfo.InvariantCulture);
+            float maximum = float.Parse(maximumText, CultureInfo.InvariantCulture);
+
+            if (!float.IsFinite(minimum) || !float.IsFinite(maximum))
+            {
+                throw new ArgumentException("Float limits must be finite numbers.");
+            }
+
+            if (minimum >= maximum)
+            {
+                throw new ArgumentException(
+                    "A float range must have a maximum greater than its minimum."
+                );
+            }
+
+            float newValue;
+
+            do
+            {
+                newValue = minimum + ((maximum - minimum) * Random.Shared.NextSingle());
+            }
+            while (newValue.Equals(currentFloat));
+
+            SendParameter(parameter, newValue);
             Console.WriteLine(
-                $"{parameter}: {intValue} -> {newValue}"
+                $"{parameter}: {FormatValue(currentFloat)} -> {FormatValue(newValue)}"
             );
+            return;
+        }
+
+        Console.WriteLine($"{parameter} is not an Int32 or Single parameter.");
+    }
+
+    static void SetParameterFromText(string parameter, string valueText)
+    {
+        object value;
+
+        if (parameters.TryGetValue(parameter, out object? currentValue))
+        {
+            value = currentValue switch
+            {
+                int => int.Parse(valueText, CultureInfo.InvariantCulture),
+                float => float.Parse(valueText, CultureInfo.InvariantCulture),
+                _ => throw new ArgumentException(
+                    $"{parameter} is not an Int32 or Single parameter."
+                )
+            };
+        }
+        else if (valueText.Contains('.') ||
+            valueText.IndexOf('e', StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            value = float.Parse(valueText, CultureInfo.InvariantCulture);
         }
         else
         {
-            Console.WriteLine(
-                $"{parameter} is not a boolean or Int32."
-            );
+            value = int.Parse(valueText, CultureInfo.InvariantCulture);
         }
+
+        object? previousValue = parameters.TryGetValue(parameter, out object? oldValue)
+            ? oldValue
+            : null;
+
+        SendParameter(parameter, value);
+
+        Console.WriteLine(
+            previousValue == null
+                ? $"{parameter} set to {FormatValue(value)}"
+                : $"{parameter}: {FormatValue(previousValue)} -> {FormatValue(value)}"
+        );
     }
 
-
-	static void SetParameter(string parameter, object value)
+    static void SendParameter(string parameter, object value)
     {
-        using OscSender sender = new OscSender(
-            IPAddress.Parse("127.0.0.1"),
+        using OscSender sender = new(
+            IPAddress.Loopback,
             9002,
-            9000
+            VrChatSendPort
         );
 
         sender.Connect();
 
-        OscMessage message = new OscMessage(
+        OscMessage message = new(
             $"/avatar/parameters/{parameter}",
             value
         );
 
         sender.Send(message);
-
         sender.Close();
 
         parameters[parameter] = value;
+        mainWindow?.AddDetectedParameter(parameter);
     }
 
-    static void SaveParameterState()
+    static bool ShouldLogParameter(string parameter)
     {
-        if (
-            !parameters.TryGetValue("TiaraOn", out object? tiaraValue) ||
-            !parameters.TryGetValue("RoseOn", out object? roseValue) ||
-            !parameters.TryGetValue("Wings/ToggledOn", out object? wingsValue) ||
-            !parameters.TryGetValue("Color", out object? colorValue)
-        )
+        lock (settingsLock)
         {
-            Console.WriteLine("Cannot save because one or more parameters have no known state.");
+            return settings.LogAllParameters ||
+                settings.LoggedParameters.Contains(parameter);
+        }
+    }
+
+    static void SetLogAllParameters(bool logAll)
+    {
+        lock (settingsLock)
+        {
+            settings.LogAllParameters = logAll;
+            SaveSettings();
+        }
+    }
+
+    static void SetParameterLogging(string parameter, bool enabled)
+    {
+        lock (settingsLock)
+        {
+            if (enabled)
+            {
+                settings.LoggedParameters.Add(parameter);
+            }
+            else
+            {
+                settings.LoggedParameters.Remove(parameter);
+            }
+
+            SaveSettings();
+        }
+    }
+
+    static void LoadSettings()
+    {
+        if (!File.Exists(settingsFilePath))
+        {
             return;
         }
 
-        SavedParameterState state = new SavedParameterState
+        try
         {
-            TiaraOn = (bool)tiaraValue,
-            RoseOn = (bool)roseValue,
-            WingsOn = (bool)wingsValue,
-            Color = (int)colorValue
-        };
+            string json = File.ReadAllText(settingsFilePath);
+            AppSettings? loadedSettings = JsonSerializer.Deserialize<AppSettings>(json);
 
+            if (loadedSettings != null)
+            {
+                loadedSettings.LoggedParameters = new HashSet<string>(
+                    loadedSettings.LoggedParameters ?? [],
+                    StringComparer.Ordinal
+                );
+
+                settings = loadedSettings;
+            }
+        }
+        catch
+        {
+            settings = new AppSettings();
+        }
+    }
+
+    static void SaveSettings()
+    {
         string json = JsonSerializer.Serialize(
-            state,
+            settings,
             new JsonSerializerOptions
             {
                 WriteIndented = true
             }
         );
 
-        File.WriteAllText(saveFilePath, json);
-
-        Console.WriteLine("Parameter state saved.");
+        File.WriteAllText(settingsFilePath, json);
     }
 
-    static void LoadParameterState()
+    static string FormatValue(object value)
     {
-        if (!File.Exists(saveFilePath))
+        return value switch
         {
-            Console.WriteLine("No saved parameter state was found.");
-            return;
-        }
-
-        string json = File.ReadAllText(saveFilePath);
-
-        SavedParameterState? state =
-            JsonSerializer.Deserialize<SavedParameterState>(json);
-
-        if (state == null)
-        {
-            Console.WriteLine("Could not read saved parameter state.");
-            return;
-        }
-
-        SetParameter("TiaraOn", state.TiaraOn);
-        SetParameter("RoseOn", state.RoseOn);
-        SetParameter("Wings/ToggledOn", state.WingsOn);
-        SetParameter("Color", state.Color);
-
-        Console.WriteLine("Saved parameter state reapplied.");
+            float floatValue => floatValue.ToString("0.######", CultureInfo.InvariantCulture),
+            double doubleValue => doubleValue.ToString("0.######", CultureInfo.InvariantCulture),
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
     }
-
 }
