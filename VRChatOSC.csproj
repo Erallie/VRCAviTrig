@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>true</SelfContained>
+		<PublishDir>$(MSBuildProjectDirectory)\publish\win-x64\</PublishDir>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Rug.Osc" Version="1.2.5" />
+	</ItemGroup>
+
+</Project>

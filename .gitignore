@@ -1,0 +1,35 @@
+# Build output
+bin/
+obj/
+publish/
+
+# Visual Studio
+.vs/
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+
+# Logs
+*.log
+
+# NuGet packages
+*.nupkg
+
+# Test results
+TestResults/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# JetBrains
+_ReSharper*/
