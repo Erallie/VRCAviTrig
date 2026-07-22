@@ -22,6 +22,8 @@ class Program
 
     static readonly ConcurrentDictionary<string, object> parameters = new();
     static readonly object settingsLock = new();
+    static readonly object senderLock = new();
+    static OscSender? oscSender;
 
     static NotifyIcon? trayIcon;
     static ToolStripMenuItem? toggleWindowMenuItem;
@@ -31,6 +33,11 @@ class Program
     static readonly string settingsFilePath = Path.Combine(
         AppContext.BaseDirectory,
         "settings.json"
+    );
+
+    static readonly string saveFilePath = Path.Combine(
+        AppContext.BaseDirectory,
+        "saved-state.json"
     );
 
     static AppSettings settings = new();
@@ -421,6 +428,12 @@ class Program
                 trayIcon.Visible = false;
             }
 
+            lock (senderLock)
+            {
+                oscSender?.Close();
+                oscSender = null;
+            }
+
             mainWindow?.Close();
             Application.Exit();
         };
@@ -465,9 +478,17 @@ class Program
 
         CreateTrayIcon();
 
+        oscSender = new OscSender(
+            IPAddress.Loopback,
+            9002,
+            VrChatSendPort
+        );
+
+        oscSender.Connect();
+
         Console.WriteLine("VRChat OSC Bridge started.");
         Console.WriteLine($"Listening for commands on UDP port {CommandPort}.");
-        Console.WriteLine("Commands: toggle, random, set");
+        Console.WriteLine("Commands: toggle, random, set, save, load");
 
         Task.Run(ListenForVRChat);
         Task.Run(ListenForCommands);
@@ -567,11 +588,21 @@ class Program
                     SetParameterFromText(parts[1], parts[2]);
                     break;
 
+                case "save" when parts.Length == 1:
+                    SaveParameterState();
+                    break;
+
+                case "load" when parts.Length == 1:
+                    LoadParameterState();
+                    break;
+
                 default:
                     Console.WriteLine("Invalid command. Use:");
                     Console.WriteLine("  toggle <parameter>");
                     Console.WriteLine("  random <parameter> <minimum> <maximum>");
                     Console.WriteLine("  set <parameter> <value>");
+                    Console.WriteLine("  save");
+                    Console.WriteLine("  load");
                     break;
             }
         }
@@ -726,24 +757,162 @@ class Program
 
     static void SendParameter(string parameter, object value)
     {
-        using OscSender sender = new(
-            IPAddress.Loopback,
-            9002,
-            VrChatSendPort
-        );
-
-        sender.Connect();
-
         OscMessage message = new(
             $"/avatar/parameters/{parameter}",
             value
         );
 
-        sender.Send(message);
-        sender.Close();
+        lock (senderLock)
+        {
+            if (oscSender == null)
+            {
+                throw new InvalidOperationException(
+                    "The OSC sender is not connected."
+                );
+            }
+
+            oscSender.Send(message);
+        }
 
         parameters[parameter] = value;
         mainWindow?.AddDetectedParameter(parameter);
+    }
+
+    static bool ParameterValuesEqual(object first, object second)
+    {
+        if (first.GetType() == second.GetType())
+        {
+            return Equals(first, second);
+        }
+
+        if (first is int firstInt && second is float secondFloat)
+        {
+            return firstInt.Equals(secondFloat);
+        }
+
+        if (first is float firstFloat && second is int secondInt)
+        {
+            return firstFloat.Equals(secondInt);
+        }
+
+        return false;
+    }
+
+    static void SaveParameterState()
+    {
+        Dictionary<string, object> savedParameters = new(
+            StringComparer.Ordinal
+        );
+
+        foreach (KeyValuePair<string, object> parameter in parameters)
+        {
+            if (
+                parameter.Value is bool ||
+                parameter.Value is int ||
+                parameter.Value is float
+            )
+            {
+                savedParameters[parameter.Key] = parameter.Value;
+            }
+        }
+
+        string json = JsonSerializer.Serialize(
+            savedParameters,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true
+            }
+        );
+
+        File.WriteAllText(saveFilePath, json);
+
+        Console.WriteLine(
+            $"Saved {savedParameters.Count} parameter state(s)."
+        );
+    }
+
+    static void LoadParameterState()
+    {
+        if (!File.Exists(saveFilePath))
+        {
+            Console.WriteLine(
+                "No saved parameter state was found."
+            );
+
+            return;
+        }
+
+        using JsonDocument document = JsonDocument.Parse(
+            File.ReadAllText(saveFilePath)
+        );
+
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            Console.WriteLine(
+                "The saved parameter state is not a valid JSON object."
+            );
+
+            return;
+        }
+
+        int loadedCount = 0;
+
+        foreach (JsonProperty property in document.RootElement.EnumerateObject())
+        {
+            string parameter = property.Name;
+
+            // Compatibility with your original saved-state format.
+            if (parameter == "WingsOn")
+            {
+                parameter = "Wings/ToggledOn";
+            }
+
+            object? value = ReadSavedParameterValue(property.Value);
+
+            if (value == null)
+            {
+                Console.WriteLine(
+                    $"Skipped {parameter}: unsupported saved value."
+                );
+
+                continue;
+            }
+
+            SendParameter(parameter, value);
+            loadedCount++;
+        }
+
+        Console.WriteLine(
+            $"Reapplied {loadedCount} saved parameter state(s)."
+        );
+    }
+
+    static object? ReadSavedParameterValue(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.True:
+                return true;
+
+            case JsonValueKind.False:
+                return false;
+
+            case JsonValueKind.Number:
+                if (element.TryGetInt32(out int intValue))
+                {
+                    return intValue;
+                }
+
+                if (element.TryGetSingle(out float floatValue))
+                {
+                    return floatValue;
+                }
+
+                return null;
+
+            default:
+                return null;
+        }
     }
 
     static bool ShouldLogParameter(string parameter)
