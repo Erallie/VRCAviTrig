@@ -945,15 +945,22 @@ class Program
         {
             value = currentValue switch
             {
+                bool => bool.Parse(valueText),
                 int => int.Parse(valueText, CultureInfo.InvariantCulture),
                 float => float.Parse(valueText, CultureInfo.InvariantCulture),
                 _ => throw new ArgumentException(
-                    $"{parameter} is not an Int32 or Single parameter."
+                    $"{parameter} is not a supported parameter type."
                 )
             };
         }
-        else if (valueText.Contains('.') ||
-            valueText.IndexOf('e', StringComparison.OrdinalIgnoreCase) >= 0)
+        else if (bool.TryParse(valueText, out bool boolValue))
+        {
+            value = boolValue;
+        }
+        else if (
+            valueText.Contains('.') ||
+            valueText.IndexOf('e', StringComparison.OrdinalIgnoreCase) >= 0
+        )
         {
             value = float.Parse(valueText, CultureInfo.InvariantCulture);
         }
@@ -961,7 +968,7 @@ class Program
         {
             value = int.Parse(valueText, CultureInfo.InvariantCulture);
         }
-
+        
         object? previousValue = parameters.TryGetValue(parameter, out object? oldValue)
             ? oldValue
             : null;
