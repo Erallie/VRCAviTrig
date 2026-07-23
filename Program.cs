@@ -631,7 +631,7 @@ class Program
         };
 
         ContextMenuStrip menu = new();
-        toggleWindowMenuItem = new ToolStripMenuItem("Show Window");
+        toggleWindowMenuItem = new ToolStripMenuItem("Show");
         ToolStripMenuItem exitMenuItem = new("Exit");
 
         toggleWindowMenuItem.Click += (_, _) =>
@@ -679,8 +679,8 @@ class Program
         if (toggleWindowMenuItem != null)
         {
             toggleWindowMenuItem.Text = mainWindow?.Visible == true
-                ? "Hide Window"
-                : "Show Window";
+                ? "Hide"
+                : "Show";
         }
     }
 
