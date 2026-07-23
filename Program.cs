@@ -52,6 +52,7 @@ class Program
 
         public bool MinimizeToTray { get; set; } = true;
         public bool CloseToTray { get; set; } = true;
+        public bool StartWithWindows { get; set; } = false;
     }
 
     class MainWindow : Form
@@ -68,6 +69,7 @@ class Program
         private readonly NumericUpDown commandPortInput;
         private readonly CheckBox minimizeToTrayCheckBox;
         private readonly CheckBox closeToTrayCheckBox;
+        private readonly CheckBox startWithWindowsCheckBox;
 
         public MainWindow()
         {
@@ -185,7 +187,7 @@ class Program
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 8,
+                RowCount = 9,
                 Padding = new Padding(20),
                 AutoSize = true
             };
@@ -230,6 +232,13 @@ class Program
                 Text = "Close to the system tray",
                 AutoSize = true,
                 Checked = settings.CloseToTray
+            };
+
+            startWithWindowsCheckBox = new CheckBox
+            {
+                Text = "Launch on Windows startup",
+                AutoSize = true,
+                Checked = settings.StartWithWindows
             };
 
             Button saveSettingsButton = new()
@@ -292,6 +301,17 @@ class Program
                 2
             );
 
+            appSettingsLayout.Controls.Add(
+                startWithWindowsCheckBox,
+                0,
+                6
+            );
+
+            appSettingsLayout.SetColumnSpan(
+                startWithWindowsCheckBox,
+                2
+            );
+
             FlowLayoutPanel saveSettingsPanel = new()
             {
                 AutoSize = true,
@@ -331,10 +351,15 @@ class Program
                 settings.CloseToTray =
                     closeToTrayCheckBox.Checked;
 
+                settings.StartWithWindows =
+                    startWithWindowsCheckBox.Checked;
+
                 lock (settingsLock)
                 {
                     SaveSettings();
                 }
+
+                SetStartup(settings.StartWithWindows);
 
                 MessageBox.Show(
                     this,
@@ -553,6 +578,8 @@ class Program
             layout.Controls.Add(label, 0, row);
             layout.Controls.Add(control, 1, row);
         }
+
+        
     }
 
     class LogTextWriter : TextWriter
@@ -687,6 +714,8 @@ class Program
         Application.SetCompatibleTextRenderingDefault(false);
 
         LoadSettings();
+        SetStartup(settings.StartWithWindows);
+
         mainWindow = new MainWindow();
 
         LogTextWriter logWriter = new(
@@ -1224,6 +1253,31 @@ class Program
         {
             oscSender?.Close();
             oscSender = null;
+        }
+    }
+
+    static void SetStartup(bool enabled)
+    {
+        string startupFolder = Environment.GetFolderPath(
+            Environment.SpecialFolder.Startup);
+
+        string shortcutPath = Path.Combine(
+            startupFolder,
+            "VRChat OSC Bridge.lnk");
+
+        if (enabled)
+        {
+            Type shellType = Type.GetTypeFromProgID("WScript.Shell")!;
+            dynamic shell = Activator.CreateInstance(shellType)!;
+
+            dynamic shortcut = shell.CreateShortcut(shortcutPath);
+            shortcut.TargetPath = Application.ExecutablePath;
+            shortcut.WorkingDirectory = AppContext.BaseDirectory;
+            shortcut.Save();
+        }
+        else if (File.Exists(shortcutPath))
+        {
+            File.Delete(shortcutPath);
         }
     }
 }
