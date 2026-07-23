@@ -646,7 +646,9 @@ class Program
         exitMenuItem.Click += (_, _) =>
         {
             exiting = true;
+            ShutdownApplication();
             mainWindow?.Close();
+            Application.Exit();
         };
 
         menu.Items.Add(toggleWindowMenuItem);
