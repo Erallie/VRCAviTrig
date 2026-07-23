@@ -12,7 +12,7 @@ It also includes a built-in log viewer, parameter logging controls, configurable
 
 * Monitor all OSC parameters sent by VRChat, or choose which parameters to monitor
 * Toggle Boolean parameters
-* Set Integer and Float parameters
+* Set Boolean, Integer, and Float parameters directly
 * Randomize Integer and Float parameters within a specified range
 * Save the current state of avatar parameters and load it later
 * Simple UDP command interface for automation
@@ -90,20 +90,23 @@ toggle <parameter>
 Example:
 
 ```
-toggle Wings/Enabled
+toggle Tiara
 ```
 
 Toggles a Boolean parameter.
 
 ---
 
-### Set Floats and Integers
+### Set Booleans, Integers, and Floats
 
 ```
 set <parameter> <value>
 ```
 
 Examples:
+```
+set Tiara false
+```
 
 ```
 set Outfit/Color 3
