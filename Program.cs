@@ -46,7 +46,6 @@ class Program
         public HashSet<string> LoggedParameters { get; set; } = new(
             StringComparer.Ordinal
         );
-        public int LocalSendPort { get; set; } = 9002;
         public int VrChatReceivePort { get; set; } = 9001;
         public int VrChatSendPort { get; set; } = 9000;
         public int CommandPort { get; set; } = 8765;
@@ -66,7 +65,6 @@ class Program
 
         private readonly NumericUpDown vrChatReceivePortInput;
         private readonly NumericUpDown vrChatSendPortInput;
-        private readonly NumericUpDown localSendPortInput;
         private readonly NumericUpDown commandPortInput;
         private readonly CheckBox minimizeToTrayCheckBox;
         private readonly CheckBox closeToTrayCheckBox;
@@ -216,10 +214,6 @@ class Program
                 settings.VrChatSendPort
             );
 
-            localSendPortInput = CreatePortInput(
-                settings.LocalSendPort
-            );
-
             commandPortInput = CreatePortInput(
                 settings.CommandPort
             );
@@ -272,13 +266,6 @@ class Program
             AddSettingRow(
                 appSettingsLayout,
                 3,
-                "Local send port:",
-                localSendPortInput
-            );
-
-            AddSettingRow(
-                appSettingsLayout,
-                4,
                 "Command port:",
                 commandPortInput
             );
@@ -286,7 +273,7 @@ class Program
             appSettingsLayout.Controls.Add(
                 minimizeToTrayCheckBox,
                 0,
-                5
+                4
             );
 
             appSettingsLayout.SetColumnSpan(
@@ -297,7 +284,7 @@ class Program
             appSettingsLayout.Controls.Add(
                 closeToTrayCheckBox,
                 0,
-                6
+                5
             );
 
             appSettingsLayout.SetColumnSpan(
@@ -334,9 +321,6 @@ class Program
 
                 settings.VrChatSendPort =
                     Decimal.ToInt32(vrChatSendPortInput.Value);
-
-                settings.LocalSendPort =
-                    Decimal.ToInt32(localSendPortInput.Value);
 
                 settings.CommandPort =
                     Decimal.ToInt32(commandPortInput.Value);
@@ -662,9 +646,7 @@ class Program
         exitMenuItem.Click += (_, _) =>
         {
             exiting = true;
-            ShutdownApplication();
             mainWindow?.Close();
-            Application.Exit();
         };
 
         menu.Items.Add(toggleWindowMenuItem);
@@ -716,7 +698,7 @@ class Program
 
         oscSender = new OscSender(
             IPAddress.Loopback,
-            settings.LocalSendPort,
+            9002,
             settings.VrChatSendPort
         );
 
@@ -1014,26 +996,6 @@ class Program
 
         parameters[parameter] = value;
         mainWindow?.AddDetectedParameter(parameter);
-    }
-
-    static bool ParameterValuesEqual(object first, object second)
-    {
-        if (first.GetType() == second.GetType())
-        {
-            return Equals(first, second);
-        }
-
-        if (first is int firstInt && second is float secondFloat)
-        {
-            return firstInt.Equals(secondFloat);
-        }
-
-        if (first is float firstFloat && second is int secondInt)
-        {
-            return firstFloat.Equals(secondInt);
-        }
-
-        return false;
     }
 
     static void SaveParameterState()
