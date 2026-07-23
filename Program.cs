@@ -29,13 +29,21 @@ class Program
     static MainWindow? mainWindow;
     static bool exiting;
 
+    static readonly string appDataDirectory = Path.Combine(
+        Environment.GetFolderPath(
+            Environment.SpecialFolder.LocalApplicationData
+        ),
+        "Gozar Productions",
+        "VRChat Avatar OSC"
+    );
+
     static readonly string settingsFilePath = Path.Combine(
-        AppContext.BaseDirectory,
+        appDataDirectory,
         "settings.json"
     );
 
     static readonly string saveFilePath = Path.Combine(
-        AppContext.BaseDirectory,
+        appDataDirectory,
         "saved-state.json"
     );
 
@@ -716,6 +724,8 @@ class Program
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        
+        Directory.CreateDirectory(appDataDirectory);
 
         LoadSettings();
         SetStartup(settings.StartWithWindows);
