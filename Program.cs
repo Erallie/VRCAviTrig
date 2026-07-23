@@ -506,7 +506,10 @@ class Program
         {
             base.OnResize(e);
 
-            if (WindowState == FormWindowState.Minimized)
+            if (
+                WindowState == FormWindowState.Minimized &&
+                settings.MinimizeToTray
+            )
             {
                 Hide();
                 WindowState = FormWindowState.Normal;
@@ -648,6 +651,8 @@ class Program
             else
             {
                 mainWindow.Show();
+                mainWindow.WindowState = FormWindowState.Normal;
+                mainWindow.BringToFront();
                 mainWindow.Activate();
             }
 
@@ -668,8 +673,15 @@ class Program
         trayIcon.ContextMenuStrip = menu;
         trayIcon.DoubleClick += (_, _) =>
         {
-            mainWindow?.Show();
-            mainWindow?.Activate();
+            if (mainWindow == null)
+            {
+                return;
+            }
+
+            mainWindow.Show();
+            mainWindow.WindowState = FormWindowState.Normal;
+            mainWindow.BringToFront();
+            mainWindow.Activate();
             UpdateWindowMenuText();
         };
     }
