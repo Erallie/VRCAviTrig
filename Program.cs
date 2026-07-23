@@ -16,9 +16,6 @@ using System.Windows.Forms;
 class Program
 {
     const int MaxLogLines = 500;
-    const int VrChatReceivePort = 9001;
-    const int VrChatSendPort = 9000;
-    const int CommandPort = 8765;
 
     static readonly ConcurrentDictionary<string, object> parameters = new();
     static readonly object settingsLock = new();
@@ -45,9 +42,17 @@ class Program
     class AppSettings
     {
         public bool LogAllParameters { get; set; } = true;
+
         public HashSet<string> LoggedParameters { get; set; } = new(
             StringComparer.Ordinal
         );
+        public int LocalSendPort { get; set; } = 9002;
+        public int VrChatReceivePort { get; set; } = 9001;
+        public int VrChatSendPort { get; set; } = 9000;
+        public int CommandPort { get; set; } = 8765;
+
+        public bool MinimizeToTray { get; set; } = true;
+        public bool CloseToTray { get; set; } = true;
     }
 
     class MainWindow : Form
@@ -58,6 +63,13 @@ class Program
         private readonly CheckedListBox parameterList;
         private readonly TextBox parameterNameTextBox;
         private bool refreshingParameterList;
+
+        private readonly NumericUpDown vrChatReceivePortInput;
+        private readonly NumericUpDown vrChatSendPortInput;
+        private readonly NumericUpDown localSendPortInput;
+        private readonly NumericUpDown commandPortInput;
+        private readonly CheckBox minimizeToTrayCheckBox;
+        private readonly CheckBox closeToTrayCheckBox;
 
         public MainWindow()
         {
@@ -73,6 +85,7 @@ class Program
 
             TabPage logTab = new("Log");
             TabPage parametersTab = new("Parameter Logging");
+            TabPage appSettingsTab = new("Settings");
 
             logTextBox = new TextBox
             {
@@ -169,8 +182,190 @@ class Program
             settingsLayout.Controls.Add(addPanel, 0, 4);
 
             parametersTab.Controls.Add(settingsLayout);
+
+            TableLayoutPanel appSettingsLayout = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 8,
+                Padding = new Padding(20),
+                AutoSize = true
+            };
+
+            appSettingsLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize)
+            );
+
+            appSettingsLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f)
+            );
+
+            Label portsHeading = new()
+            {
+                Text = "Network Ports",
+                AutoSize = true,
+                Font = new Font(Font, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 10)
+            };
+
+            vrChatReceivePortInput = CreatePortInput(
+                settings.VrChatReceivePort
+            );
+
+            vrChatSendPortInput = CreatePortInput(
+                settings.VrChatSendPort
+            );
+
+            localSendPortInput = CreatePortInput(
+                settings.LocalSendPort
+            );
+
+            commandPortInput = CreatePortInput(
+                settings.CommandPort
+            );
+
+            minimizeToTrayCheckBox = new CheckBox
+            {
+                Text = "Minimize to the system tray",
+                AutoSize = true,
+                Checked = settings.MinimizeToTray
+            };
+
+            closeToTrayCheckBox = new CheckBox
+            {
+                Text = "Close to the system tray",
+                AutoSize = true,
+                Checked = settings.CloseToTray
+            };
+
+            Button saveSettingsButton = new()
+            {
+                Text = "Save Settings",
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3)
+            };
+
+            Label restartNotice = new()
+            {
+                Text = "Port changes take effect after restarting the application.",
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText
+            };
+
+            appSettingsLayout.Controls.Add(portsHeading, 0, 0);
+            appSettingsLayout.SetColumnSpan(portsHeading, 2);
+
+            AddSettingRow(
+                appSettingsLayout,
+                1,
+                "VRChat receive port:",
+                vrChatReceivePortInput
+            );
+
+            AddSettingRow(
+                appSettingsLayout,
+                2,
+                "VRChat send port:",
+                vrChatSendPortInput
+            );
+
+            AddSettingRow(
+                appSettingsLayout,
+                3,
+                "Local send port:",
+                localSendPortInput
+            );
+
+            AddSettingRow(
+                appSettingsLayout,
+                4,
+                "Command port:",
+                commandPortInput
+            );
+
+            appSettingsLayout.Controls.Add(
+                minimizeToTrayCheckBox,
+                0,
+                5
+            );
+
+            appSettingsLayout.SetColumnSpan(
+                minimizeToTrayCheckBox,
+                2
+            );
+
+            appSettingsLayout.Controls.Add(
+                closeToTrayCheckBox,
+                0,
+                6
+            );
+
+            appSettingsLayout.SetColumnSpan(
+                closeToTrayCheckBox,
+                2
+            );
+
+            FlowLayoutPanel saveSettingsPanel = new()
+            {
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 12, 0, 0)
+            };
+
+            saveSettingsPanel.Controls.Add(saveSettingsButton);
+            saveSettingsPanel.Controls.Add(restartNotice);
+
+            appSettingsLayout.Controls.Add(
+                saveSettingsPanel,
+                0,
+                7
+            );
+
+            appSettingsLayout.SetColumnSpan(
+                saveSettingsPanel,
+                2
+            );
+
+            saveSettingsButton.Click += (_, _) =>
+            {
+                settings.VrChatReceivePort =
+                    Decimal.ToInt32(vrChatReceivePortInput.Value);
+
+                settings.VrChatSendPort =
+                    Decimal.ToInt32(vrChatSendPortInput.Value);
+
+                settings.LocalSendPort =
+                    Decimal.ToInt32(localSendPortInput.Value);
+
+                settings.CommandPort =
+                    Decimal.ToInt32(commandPortInput.Value);
+
+                settings.MinimizeToTray =
+                    minimizeToTrayCheckBox.Checked;
+
+                settings.CloseToTray =
+                    closeToTrayCheckBox.Checked;
+
+                lock (settingsLock)
+                {
+                    SaveSettings();
+                }
+
+                MessageBox.Show(
+                    this,
+                    "Settings saved. Restart the application for port changes to take effect.",
+                    "Settings Saved",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            };
+
+            appSettingsTab.Controls.Add(appSettingsLayout);
+
             tabs.TabPages.Add(logTab);
             tabs.TabPages.Add(parametersTab);
+            tabs.TabPages.Add(appSettingsTab);
             Controls.Add(tabs);
 
             logAllRadioButton.CheckedChanged += (_, _) =>
@@ -321,7 +516,11 @@ class Program
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            if (!exiting)
+            if (
+                !exiting &&
+                settings.CloseToTray &&
+                e.CloseReason == CloseReason.UserClosing
+            )
             {
                 e.Cancel = true;
                 Hide();
@@ -329,7 +528,43 @@ class Program
                 return;
             }
 
+            exiting = true;
+            ShutdownApplication();
+
             base.OnFormClosing(e);
+        }
+
+        private static NumericUpDown CreatePortInput(int value)
+        {
+            return new NumericUpDown
+            {
+                Minimum = 1,
+                Maximum = 65535,
+                Value = Math.Clamp(value, 1, 65535),
+                Width = 120
+            };
+        }
+
+        private static void AddSettingRow(
+            TableLayoutPanel layout,
+            int row,
+            string labelText,
+            Control control
+        )
+        {
+            Label label = new()
+            {
+                Text = labelText,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 7, 12, 7)
+            };
+
+            control.Anchor = AnchorStyles.Left;
+            control.Margin = new Padding(0, 4, 0, 4);
+
+            layout.Controls.Add(label, 0, row);
+            layout.Controls.Add(control, 1, row);
         }
     }
 
@@ -422,18 +657,7 @@ class Program
         exitMenuItem.Click += (_, _) =>
         {
             exiting = true;
-
-            if (trayIcon != null)
-            {
-                trayIcon.Visible = false;
-            }
-
-            lock (senderLock)
-            {
-                oscSender?.Close();
-                oscSender = null;
-            }
-
+            ShutdownApplication();
             mainWindow?.Close();
             Application.Exit();
         };
@@ -480,14 +704,16 @@ class Program
 
         oscSender = new OscSender(
             IPAddress.Loopback,
-            9002,
-            VrChatSendPort
+            settings.LocalSendPort,
+            settings.VrChatSendPort
         );
 
         oscSender.Connect();
 
         Console.WriteLine("VRChat OSC Bridge started.");
-        Console.WriteLine($"Listening for commands on UDP port {CommandPort}.");
+        Console.WriteLine(
+            $"Listening for commands on UDP port {settings.CommandPort}."
+        );
         Console.WriteLine("Commands: toggle, random, set, save, load");
 
         Task.Run(ListenForVRChat);
@@ -500,10 +726,10 @@ class Program
     {
         try
         {
-            using OscReceiver receiver = new(VrChatReceivePort);
+            using OscReceiver receiver = new(settings.VrChatReceivePort);
             receiver.Connect();
 
-            Console.WriteLine($"Listening for VRChat OSC on port {VrChatReceivePort}.");
+            Console.WriteLine($"Listening for VRChat OSC on port {settings.VrChatReceivePort}.");
 
             while (true)
             {
@@ -537,11 +763,11 @@ class Program
     {
         try
         {
-            using UdpClient listener = new(CommandPort);
+            using UdpClient listener = new(settings.CommandPort);
 
             while (true)
             {
-                IPEndPoint endpoint = new(IPAddress.Any, CommandPort);
+                IPEndPoint endpoint = new(IPAddress.Any, settings.CommandPort);
                 byte[] data = listener.Receive(ref endpoint);
                 string command = Encoding.UTF8.GetString(data).Trim();
 
@@ -1000,5 +1226,21 @@ class Program
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? string.Empty
         };
+    }
+
+    static void ShutdownApplication()
+    {
+        if (trayIcon != null)
+        {
+            trayIcon.Visible = false;
+            trayIcon.Dispose();
+            trayIcon = null;
+        }
+
+        lock (senderLock)
+        {
+            oscSender?.Close();
+            oscSender = null;
+        }
     }
 }
