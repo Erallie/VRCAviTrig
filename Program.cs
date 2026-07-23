@@ -639,7 +639,7 @@ class Program
     {
         trayIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath)!,
             Text = "VRChat OSC Bridge",
             Visible = true
         };
