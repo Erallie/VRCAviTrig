@@ -12,6 +12,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Velopack;
+using Velopack.Sources;
 
 class Program
 {
@@ -710,6 +712,8 @@ class Program
     [STAThread]
     static void Main()
     {
+        VelopackApp.Build().Run();
+
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
@@ -724,6 +728,8 @@ class Program
 
         Console.SetOut(logWriter);
         Console.SetError(logWriter);
+
+        _ = CheckForUpdatesAsync();
 
         CreateTrayIcon();
 
@@ -1278,6 +1284,70 @@ class Program
         else if (File.Exists(shortcutPath))
         {
             File.Delete(shortcutPath);
+        }
+    }
+
+    static async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            GithubSource source = new(
+                "https://github.com/Erallie/vrchat-avatar-osc",
+                accessToken: null,
+                prerelease: false
+            );
+
+            UpdateManager updateManager = new(source);
+
+            // This will normally be false when running directly through
+            // dotnet run or from an unpackaged development build.
+            if (!updateManager.IsInstalled)
+            {
+                Console.WriteLine(
+                    "Update check skipped because this is not an installed release."
+                );
+
+                return;
+            }
+
+            UpdateInfo? update = await updateManager.CheckForUpdatesAsync();
+
+            if (update == null)
+            {
+                Console.WriteLine("The application is up to date.");
+                return;
+            }
+
+            Console.WriteLine(
+                $"Downloading update {update.TargetFullRelease.Version}..."
+            );
+
+            await updateManager.DownloadUpdatesAsync(update);
+
+            Console.WriteLine(
+                $"Update {update.TargetFullRelease.Version} downloaded."
+            );
+
+            DialogResult result = MessageBox.Show(
+                $"Version {update.TargetFullRelease.Version} is ready. " +
+                "Restart now to install it?",
+                "Update Available",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information
+            );
+
+            if (result == DialogResult.Yes)
+            {
+                updateManager.ApplyUpdatesAndRestart(update);
+            }
+        }
+        catch (Exception exception)
+        {
+            // An unavailable network or GitHub should not prevent the app
+            // from starting.
+            Console.WriteLine(
+                $"Could not check for updates: {exception.Message}"
+            );
         }
     }
 }

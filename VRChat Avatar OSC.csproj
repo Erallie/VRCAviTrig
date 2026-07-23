@@ -11,11 +11,15 @@
 		<SelfContained>true</SelfContained>
 		<PublishDir>$(MSBuildProjectDirectory)\publish\win-x64\</PublishDir>
 
-        <ApplicationIcon>icon.ico</ApplicationIcon>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
+
+		<Version>1.0.0</Version>
+		<AssemblyName>VRChat Avatar OSC</AssemblyName>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Rug.Osc" Version="1.2.5" />
+		<PackageReference Include="Velopack" Version="1.*" />
 	</ItemGroup>
 
 </Project>
