@@ -1396,26 +1396,82 @@ class Program
     static void SetStartup(bool enabled)
     {
         string startupFolder = Environment.GetFolderPath(
-            Environment.SpecialFolder.Startup);
+            Environment.SpecialFolder.Startup
+        );
 
         string shortcutPath = Path.Combine(
             startupFolder,
-            "VRChat OSC Bridge.lnk");
+            "VRChat OSC Bridge.lnk"
+        );
 
-        if (enabled)
+        if (!enabled)
         {
-            Type shellType = Type.GetTypeFromProgID("WScript.Shell")!;
-            dynamic shell = Activator.CreateInstance(shellType)!;
+            if (File.Exists(shortcutPath))
+            {
+                File.Delete(shortcutPath);
+            }
 
-            dynamic shortcut = shell.CreateShortcut(shortcutPath);
-            shortcut.TargetPath = Application.ExecutablePath;
-            shortcut.WorkingDirectory = AppContext.BaseDirectory;
-            shortcut.Save();
+            return;
         }
-        else if (File.Exists(shortcutPath))
+
+        string executablePath = Application.ExecutablePath;
+        string executableDirectory = AppContext.BaseDirectory
+            .TrimEnd(Path.DirectorySeparatorChar);
+
+        DirectoryInfo? currentDirectory = Directory.GetParent(
+            executableDirectory
+        );
+
+        /*
+         * Velopack keeps the real application inside:
+         *
+         *     <installation folder>\current\VRChat Avatar OSC.exe
+         *
+         * and creates a stable launcher at:
+         *
+         *     <installation folder>\VRChat Avatar OSC.exe
+         *
+         * The stable launcher survives updates, while the contents of
+         * the "current" directory are replaced.
+         */
+        if (
+            string.Equals(
+                currentDirectory?.Name,
+                "current",
+                StringComparison.OrdinalIgnoreCase
+            ) &&
+            currentDirectory.Parent != null
+        )
         {
-            File.Delete(shortcutPath);
+            string stableLauncherPath = Path.Combine(
+                currentDirectory.Parent.FullName,
+                Path.GetFileName(Application.ExecutablePath)
+            );
+
+            if (File.Exists(stableLauncherPath))
+            {
+                executablePath = stableLauncherPath;
+                executableDirectory = currentDirectory.Parent.FullName;
+            }
         }
+
+        Type shellType = Type.GetTypeFromProgID(
+            "WScript.Shell"
+        ) ?? throw new InvalidOperationException(
+            "Windows Script Host is unavailable."
+        );
+
+        dynamic shell = Activator.CreateInstance(
+            shellType
+        ) ?? throw new InvalidOperationException(
+            "Could not create the Windows shortcut service."
+        );
+
+        dynamic shortcut = shell.CreateShortcut(shortcutPath);
+        shortcut.TargetPath = executablePath;
+        shortcut.WorkingDirectory = executableDirectory;
+        shortcut.IconLocation = executablePath;
+        shortcut.Save();
     }
 
     static void ShowMessageOnUiThread(
