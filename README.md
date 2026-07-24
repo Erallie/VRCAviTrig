@@ -62,6 +62,29 @@ Features include:
 * Manually adding parameters
 * Selecting exactly which parameters should appear in the log
 
+### Save Parameters
+
+By default, the application does not save any parameters when the `save` command is used.
+
+Instead, you choose exactly which parameters should be included in saved states.
+
+Parameters can be specified in two ways:
+
+- **Exact parameter names**, such as:
+  ```
+  Outfit/Color
+  Wings/ToggledOn
+  ```
+
+- **Parameter prefixes (directories)**, such as:
+  ```
+  Outfit/
+  FT/
+  ```
+  Any parameter whose name begins with one of these prefixes will be saved. This can be a directory or just a common parameter prefix.
+
+This makes it easy to save only the parameters that should persist between sessions while ignoring temporary tracking data or other parameters that should not be restored, such as face tracking.
+
 ### Settings
 
 Configure the application's behavior.
@@ -141,9 +164,11 @@ For integers, the current value is never selected again if another value is avai
 save
 ```
 
-Stores the current avatar parameter values in `saved-state.json`, so that you can load them again later.
+Stores the current values of all configured save parameters in `saved-state.json`, so that you can load them again later.
 
-Only Boolean, Integer, and Float parameters are saved.
+Only Boolean, Integer, and Float parameters are supported.
+
+The list of parameters to save is configured from the **Save Parameters** tab. Parameters can be specified individually or by using parameter prefixes (such as `Outfit/` or `FT/`).
 
 ### Load
 
