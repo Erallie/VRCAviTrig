@@ -39,7 +39,7 @@ It also includes a built-in log viewer, parameter logging controls, configurable
 1. Go to the **[latest release](https://github.com/Erallie/vrchat-avatar-osc/releases/latest)**.
 2. Download **`GozarProductions.VRChatAvatarOSC-win-Setup.exe`** from the **Assets** section.
 3. Run the installer and follow the installation prompts.
-4. Launch **VRChat Avatar OSC** from the Start Menu.
+4. Launch **VRChat Avatar OSC** from the Start Menu or desktop shortcut.
 
 Future updates can be installed directly from within the application by using the **Updates** tab.
 
