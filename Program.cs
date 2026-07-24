@@ -142,7 +142,7 @@ class Program
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             Label instructions = new()
