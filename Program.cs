@@ -24,6 +24,7 @@ class Program
     static readonly ConcurrentDictionary<string, object> parameters = new();
     static readonly object settingsLock = new();
     static readonly object senderLock = new();
+    static Mutex? singleInstanceMutex;
     static OscSender? oscSender;
 
     static NotifyIcon? trayIcon;
@@ -1011,6 +1012,25 @@ class Program
     [STAThread]
     static void Main()
     {
+        bool createdNew;
+
+        singleInstanceMutex = new Mutex(
+            initiallyOwned: true,
+            name: @"Local\VRChatAvatarOSCBridge",
+            createdNew: out createdNew
+        );
+
+        if (!createdNew)
+        {
+            MessageBox.Show(
+                "VRChat Avatar OSC Bridge is already running.",
+                "Already Running",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+
+            return;
+        }
         VelopackApp.Build().Run();
 
         Application.EnableVisualStyles();
@@ -1563,6 +1583,9 @@ class Program
             oscSender?.Close();
             oscSender = null;
         }
+        singleInstanceMutex?.ReleaseMutex();
+        singleInstanceMutex?.Dispose();
+        singleInstanceMutex = null;
     }
 
     static void SetStartup(bool enabled)
