@@ -138,7 +138,7 @@ set Outfit/Color 3
 set Face/Smile 0.75
 ```
 
-Sets an Integer or Float parameter.
+Sets a Boolean, Integer, or Float parameter.
 
 ### Randomize Integers or Floats
 
