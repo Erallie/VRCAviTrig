@@ -14,6 +14,8 @@ A lightweight Windows utility for monitoring, controlling, and saving VRChat ava
 
 This application listens for OSC parameters sent by VRChat, keeps track of their current values, and lets you control them through simple UDP commands from external applications such as Streamer.bot, Twitch integrations, custom scripts, or your own software.
 
+It's perfect for making Twitch redemptions trigger features on your avatar.
+
 It also includes a built-in log viewer, parameter logging controls, configurable network ports, and the ability to save and restore avatar parameter states.
 
 ## Features
