@@ -142,7 +142,7 @@ class Program
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            settingsLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+            settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             settingsLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
             Label instructions = new()
@@ -489,6 +489,7 @@ class Program
             aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             aboutLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             Label aboutTitle = new()
@@ -556,10 +557,12 @@ class Program
             FlowLayoutPanel aboutButtons = new()
             {
                 AutoSize = true,
-                Dock = DockStyle.Fill,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Top,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = true,
-                Margin = new Padding(0, 0, 0, 8)
+                Margin = new Padding(0, 0, 0, 8),
+                Padding = new Padding(0, 0, 0, 4)
             };
 
             Button documentationButton = new()
