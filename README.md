@@ -238,3 +238,7 @@ random Outfit/Color 1 4
 to the application's Command Port.
 
 No OSC knowledge is required—Streamer.bot only needs to send plain text commands.
+
+## Support
+
+If you have any problems with the app or want to request a feature, please create an [issue](https://github.com/Erallie/vrchat-avatar-osc/issues), and I will try to get to it as soon as I can!
