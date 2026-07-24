@@ -6,8 +6,6 @@ This application listens for OSC parameters sent by VRChat, keeps track of their
 
 It also includes a built-in log viewer, parameter logging controls, configurable network ports, and the ability to save and restore avatar parameter states.
 
----
-
 ## Features
 
 * Monitor all OSC parameters sent by VRChat, or choose which parameters to monitor
@@ -17,15 +15,11 @@ It also includes a built-in log viewer, parameter logging controls, configurable
 * Save the current state of avatar parameters and load it later
 * Simple UDP command interface for automation
 
----
-
 ## Requirements
 
 * Windows
 * VRChat with OSC enabled
 * A VRChat avatar with parameters
-
----
 
 ## How It Works
 
@@ -37,8 +31,6 @@ This makes it easy to connect Twitch redeems, Streamer.bot actions, hardware but
 
 **IMPORTANT NOTE:** You must *first* call `set` or `load` or toggle the parameter manually on your avatar for each parameter you want to change with `toggle` or `random`.
 
----
-
 ## Tabs
 
 ### Log
@@ -46,8 +38,6 @@ This makes it easy to connect Twitch redeems, Streamer.bot actions, hardware but
 Displays incoming OSC parameter changes in real time.
 
 The log automatically limits itself to prevent excessive memory usage.
-
----
 
 ### Parameter Logging
 
@@ -60,8 +50,6 @@ Features include:
 * Automatically discovering parameters
 * Manually adding parameters
 * Selecting exactly which parameters should appear in the log
-
----
 
 ### Settings
 
@@ -76,8 +64,6 @@ Settings include:
 * Close to System Tray
 
 Port changes take effect after restarting the application.
-
----
 
 ## Commands
 
@@ -96,8 +82,6 @@ toggle Tiara
 ```
 
 Toggles a Boolean parameter.
-
----
 
 ### Set Booleans, Integers, and Floats
 
@@ -120,8 +104,6 @@ set Face/Smile 0.75
 
 Sets an Integer or Float parameter.
 
----
-
 ### Randomize Integers or Floats
 
 ```
@@ -142,8 +124,6 @@ Selects a random value within the specified range.
 
 For integers, the current value is never selected again if another value is available.
 
----
-
 ### Save
 
 ```
@@ -154,8 +134,6 @@ Stores the current avatar parameter values in `saved-state.json`, so that you ca
 
 Only Boolean, Integer, and Float parameters are saved.
 
----
-
 ### Load
 
 ```
@@ -163,8 +141,6 @@ load
 ```
 
 Reloads the previously saved parameter values and sends them back to VRChat.
-
----
 
 ## Files
 
@@ -177,13 +153,9 @@ Stores:
 * Network ports
 * Window behavior settings
 
----
-
 ### saved-state.json
 
 Stores saved avatar parameter values.
-
----
 
 ## Typical Workflow
 
@@ -194,8 +166,6 @@ Stores saved avatar parameter values.
 5. Use your preferred automation software (such as Streamer.bot) to send UDP commands to this application.
 6. Watch your avatar respond instantly.
 
----
-
 ## Default Ports
 
 | Purpose              | Default Port |
@@ -203,8 +173,6 @@ Stores saved avatar parameter values.
 | VRChat → Application |         9001 |
 | Application → VRChat |         9000 |
 | Command Listener     |         8765 |
-
----
 
 ## Example Streamer.bot Integration
 
