@@ -499,10 +499,12 @@ class Program
                 Font = new Font(Font.FontFamily, 18f, FontStyle.Bold),
                 Margin = new Padding(0, 0, 0, 2)
             };
+            
+            string version = Application.ProductVersion.Split('+')[0];
 
             Label aboutVersion = new()
             {
-                Text = $"Version {Application.ProductVersion}",
+                Text = $"Version {version}",
                 AutoSize = true,
                 ForeColor = SystemColors.GrayText,
                 Margin = new Padding(0, 0, 0, 16)
