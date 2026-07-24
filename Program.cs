@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Velopack;
@@ -28,6 +29,7 @@ class Program
     static ToolStripMenuItem? toggleWindowMenuItem;
     static MainWindow? mainWindow;
     static bool exiting;
+    static readonly SemaphoreSlim updateCheckLock = new(1, 1);
 
     static readonly string appDataDirectory = Path.Combine(
         Environment.GetFolderPath(
@@ -80,6 +82,8 @@ class Program
         private readonly CheckBox minimizeToTrayCheckBox;
         private readonly CheckBox closeToTrayCheckBox;
         private readonly CheckBox startWithWindowsCheckBox;
+        private readonly Button checkForUpdatesButton;
+        private readonly Label updateStatusLabel;
 
         public MainWindow()
         {
@@ -96,6 +100,7 @@ class Program
             TabPage logTab = new("Log");
             TabPage parametersTab = new("Parameter Logging");
             TabPage appSettingsTab = new("Settings");
+            TabPage updatesTab = new("Updates");
 
             logTextBox = new TextBox
             {
@@ -382,9 +387,82 @@ class Program
 
             appSettingsTab.Controls.Add(appSettingsLayout);
 
+            TableLayoutPanel updatesLayout = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 4,
+                Padding = new Padding(20)
+            };
+
+            updatesLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            updatesLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            updatesLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            updatesLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100f)
+            );
+
+            Label updatesHeading = new()
+            {
+                Text = "Application Updates",
+                AutoSize = true,
+                Font = new Font(Font, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 10)
+            };
+
+            Label updatesDescription = new()
+            {
+                Text =
+                    "Check GitHub for a newer version of VRChat OSC Bridge. " +
+                    "Updates are downloaded automatically, but you choose when " +
+                    "to restart and install them.",
+                AutoSize = true,
+                MaximumSize = new Size(650, 0),
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            checkForUpdatesButton = new Button
+            {
+                Text = "Check for Updates",
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3),
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            updateStatusLabel = new Label
+            {
+                Text = "No update check has been performed yet.",
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText
+            };
+
+            checkForUpdatesButton.Click += async (_, _) =>
+            {
+                await CheckForUpdatesAsync(
+                    showUpToDateMessage: true
+                );
+            };
+
+            updatesLayout.Controls.Add(updatesHeading, 0, 0);
+            updatesLayout.Controls.Add(updatesDescription, 0, 1);
+            updatesLayout.Controls.Add(checkForUpdatesButton, 0, 2);
+            updatesLayout.Controls.Add(updateStatusLabel, 0, 3);
+
+            updatesTab.Controls.Add(updatesLayout);
+
             tabs.TabPages.Add(logTab);
             tabs.TabPages.Add(parametersTab);
             tabs.TabPages.Add(appSettingsTab);
+            tabs.TabPages.Add(updatesTab);
             Controls.Add(tabs);
 
             logAllRadioButton.CheckedChanged += (_, _) =>
@@ -589,7 +667,35 @@ class Program
             layout.Controls.Add(control, 1, row);
         }
 
-        
+        public void SetUpdateStatus(string message)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(
+                    new Action<string>(SetUpdateStatus),
+                    message
+                );
+
+                return;
+            }
+
+            updateStatusLabel.Text = message;
+        }
+
+        public void SetUpdateCheckEnabled(bool enabled)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(
+                    new Action<bool>(SetUpdateCheckEnabled),
+                    enabled
+                );
+
+                return;
+            }
+
+            checkForUpdatesButton.Enabled = enabled;
+        }
     }
 
     class LogTextWriter : TextWriter
@@ -656,6 +762,9 @@ class Program
 
         ContextMenuStrip menu = new();
         toggleWindowMenuItem = new ToolStripMenuItem("Show");
+        ToolStripMenuItem checkForUpdatesMenuItem = new(
+            "Check for Updates"
+        );
         ToolStripMenuItem exitMenuItem = new("Exit");
 
         toggleWindowMenuItem.Click += (_, _) =>
@@ -680,6 +789,13 @@ class Program
             UpdateWindowMenuText();
         };
 
+        checkForUpdatesMenuItem.Click += async (_, _) =>
+        {
+            await CheckForUpdatesAsync(
+                showUpToDateMessage: true
+            );
+        };
+
         exitMenuItem.Click += (_, _) =>
         {
             exiting = true;
@@ -690,7 +806,10 @@ class Program
 
         menu.Items.Add(toggleWindowMenuItem);
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(checkForUpdatesMenuItem);
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitMenuItem);
+
         trayIcon.ContextMenuStrip = menu;
         trayIcon.DoubleClick += (_, _) =>
         {
@@ -739,7 +858,9 @@ class Program
         Console.SetOut(logWriter);
         Console.SetError(logWriter);
 
-        _ = CheckForUpdatesAsync();
+        _ = CheckForUpdatesAsync(
+            showUpToDateMessage: false
+        );
 
         CreateTrayIcon();
 
@@ -1297,10 +1418,99 @@ class Program
         }
     }
 
-    static async Task CheckForUpdatesAsync()
+    static void ShowMessageOnUiThread(
+        string message,
+        string title,
+        MessageBoxIcon icon
+    )
     {
+        if (mainWindow == null || mainWindow.IsDisposed)
+        {
+            return;
+        }
+
+        void ShowMessage()
+        {
+            MessageBox.Show(
+                mainWindow,
+                message,
+                title,
+                MessageBoxButtons.OK,
+                icon
+            );
+        }
+
+        if (mainWindow.InvokeRequired)
+        {
+            mainWindow.BeginInvoke(
+                new Action(ShowMessage)
+            );
+        }
+        else
+        {
+            ShowMessage();
+        }
+    }
+
+    static DialogResult ShowQuestionOnUiThread(
+        string message,
+        string title
+    )
+    {
+        if (mainWindow == null || mainWindow.IsDisposed)
+        {
+            return DialogResult.No;
+        }
+
+        if (!mainWindow.InvokeRequired)
+        {
+            return MessageBox.Show(
+                mainWindow,
+                message,
+                title,
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information
+            );
+        }
+
+        return (DialogResult)mainWindow.Invoke(
+            new Func<DialogResult>(() =>
+                MessageBox.Show(
+                    mainWindow,
+                    message,
+                    title,
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information
+                )
+            )
+        );
+    }
+
+    static async Task CheckForUpdatesAsync(
+    bool showUpToDateMessage
+    )
+    {
+        if (!await updateCheckLock.WaitAsync(0))
+        {
+            if (showUpToDateMessage)
+            {
+                ShowMessageOnUiThread(
+                    "An update check is already running.",
+                    "Check for Updates",
+                    MessageBoxIcon.Information
+                );
+            }
+
+            return;
+        }
+
         try
         {
+            mainWindow?.SetUpdateCheckEnabled(false);
+            mainWindow?.SetUpdateStatus(
+                "Checking for updates..."
+            );
+
             GithubSource source = new(
                 "https://github.com/Erallie/vrchat-avatar-osc",
                 accessToken: null,
@@ -1309,55 +1519,124 @@ class Program
 
             UpdateManager updateManager = new(source);
 
-            // This will normally be false when running directly through
-            // dotnet run or from an unpackaged development build.
             if (!updateManager.IsInstalled)
             {
-                Console.WriteLine(
-                    "Update check skipped because this is not an installed release."
-                );
+                const string message =
+                    "Update checking is unavailable because this copy " +
+                    "was not installed using the release installer.";
+
+                Console.WriteLine(message);
+                mainWindow?.SetUpdateStatus(message);
+
+                if (showUpToDateMessage)
+                {
+                    ShowMessageOnUiThread(
+                        message,
+                        "Check for Updates",
+                        MessageBoxIcon.Information
+                    );
+                }
 
                 return;
             }
 
-            UpdateInfo? update = await updateManager.CheckForUpdatesAsync();
+            UpdateInfo? update =
+                await updateManager.CheckForUpdatesAsync();
 
             if (update == null)
             {
-                Console.WriteLine("The application is up to date.");
+                const string message =
+                    "You are using the latest version.";
+
+                Console.WriteLine(message);
+                mainWindow?.SetUpdateStatus(message);
+
+                if (showUpToDateMessage)
+                {
+                    ShowMessageOnUiThread(
+                        message,
+                        "No Updates Available",
+                        MessageBoxIcon.Information
+                    );
+                }
+
                 return;
             }
 
-            Console.WriteLine(
-                $"Downloading update {update.TargetFullRelease.Version}..."
+            string version =
+                update.TargetFullRelease.Version.ToString();
+
+            mainWindow?.SetUpdateStatus(
+                $"Downloading version {version}..."
             );
 
-            await updateManager.DownloadUpdatesAsync(update);
-
             Console.WriteLine(
-                $"Update {update.TargetFullRelease.Version} downloaded."
+                $"Downloading update {version}..."
             );
 
-            DialogResult result = MessageBox.Show(
-                $"Version {update.TargetFullRelease.Version} is ready. " +
+            await updateManager.DownloadUpdatesAsync(
+                update,
+                progress =>
+                {
+                    mainWindow?.SetUpdateStatus(
+                        $"Downloading version {version}: {progress}%"
+                    );
+                }
+            );
+
+            mainWindow?.SetUpdateStatus(
+                $"Version {version} is ready to install."
+            );
+
+            Console.WriteLine(
+                $"Update {version} downloaded."
+            );
+
+            DialogResult result = ShowQuestionOnUiThread(
+                $"Version {version} has been downloaded." +
+                Environment.NewLine +
+                Environment.NewLine +
                 "Restart now to install it?",
-                "Update Available",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Information
+                "Update Ready"
             );
 
             if (result == DialogResult.Yes)
             {
+                mainWindow?.SetUpdateStatus(
+                    $"Installing version {version}..."
+                );
+
                 updateManager.ApplyUpdatesAndRestart(update);
+            }
+            else
+            {
+                mainWindow?.SetUpdateStatus(
+                    $"Version {version} is ready. " +
+                    "Check again when you are ready to restart."
+                );
             }
         }
         catch (Exception exception)
         {
-            // An unavailable network or GitHub should not prevent the app
-            // from starting.
-            Console.WriteLine(
-                $"Could not check for updates: {exception.Message}"
-            );
+            string message =
+                $"Could not check for updates: {exception.Message}";
+
+            Console.WriteLine(message);
+            mainWindow?.SetUpdateStatus(message);
+
+            if (showUpToDateMessage)
+            {
+                ShowMessageOnUiThread(
+                    message,
+                    "Update Error",
+                    MessageBoxIcon.Error
+                );
+            }
+        }
+        finally
+        {
+            mainWindow?.SetUpdateCheckEnabled(true);
+            updateCheckLock.Release();
         }
     }
 }
