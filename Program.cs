@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -101,6 +102,7 @@ class Program
             TabPage parametersTab = new("Parameter Logging");
             TabPage appSettingsTab = new("Settings");
             TabPage updatesTab = new("Updates");
+            TabPage aboutTab = new("About");
 
             logTextBox = new TextBox
             {
@@ -459,6 +461,144 @@ class Program
 
             updatesTab.Controls.Add(updatesLayout);
 
+            TableLayoutPanel aboutLayout = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 8,
+                Padding = new Padding(24),
+                AutoScroll = true
+            };
+
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            aboutLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
+            Label aboutTitle = new()
+            {
+                Text = "VRChat Avatar OSC",
+                AutoSize = true,
+                Font = new Font(Font.FontFamily, 18f, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 2)
+            };
+
+            Label aboutVersion = new()
+            {
+                Text = $"Version {Application.ProductVersion}",
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText,
+                Margin = new Padding(0, 0, 0, 16)
+            };
+
+            Label aboutDescription = new()
+            {
+                Text =
+                    "A lightweight Windows utility for monitoring, controlling, " +
+                    "and saving VRChat avatar OSC parameters. It receives OSC " +
+                    "updates from VRChat and accepts simple UDP commands from " +
+                    "external applications such as Streamer.bot.",
+                AutoSize = true,
+                MaximumSize = new Size(730, 0),
+                Margin = new Padding(0, 0, 0, 18)
+            };
+
+            Label featuresHeading = CreateAboutHeading("Key Features");
+
+            Label featuresText = new()
+            {
+                Text =
+                    "• Monitor all OSC parameters, or log only selected parameters" +
+                    Environment.NewLine +
+                    "• Toggle Boolean parameters" + Environment.NewLine +
+                    "• Set Boolean, Integer, and Float parameters" + Environment.NewLine +
+                    "• Randomize Integer and Float parameters" + Environment.NewLine +
+                    "• Save and restore avatar parameter states" + Environment.NewLine +
+                    "• Receive plain-text UDP commands from automation software",
+                AutoSize = true,
+                MaximumSize = new Size(730, 0),
+                Margin = new Padding(0, 0, 0, 18)
+            };
+
+            Label requirementsHeading = CreateAboutHeading("Requirements");
+
+            Label requirementsText = new()
+            {
+                Text =
+                    "• Windows" + Environment.NewLine +
+                    "• VRChat with OSC enabled" + Environment.NewLine +
+                    "• A VRChat avatar with parameters" + Environment.NewLine +
+                    "• Software capable of sending UDP packets, such as Streamer.bot" +
+                    Environment.NewLine + Environment.NewLine +
+                    "Default ports: VRChat receive 9001, VRChat send 9000, " +
+                    "command listener 8765.",
+                AutoSize = true,
+                MaximumSize = new Size(730, 0),
+                Margin = new Padding(0, 0, 0, 18)
+            };
+
+            FlowLayoutPanel aboutButtons = new()
+            {
+                AutoSize = true,
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true,
+                Margin = new Padding(0, 0, 0, 8)
+            };
+
+            Button documentationButton = new()
+            {
+                Text = "Open Full Documentation",
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3)
+            };
+
+            Button githubButton = new()
+            {
+                Text = "Open GitHub",
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3)
+            };
+
+            Button issuesButton = new()
+            {
+                Text = "Report an Issue",
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3)
+            };
+
+            documentationButton.Click += (_, _) => OpenWebsite(
+                "https://github.com/Erallie/vrchat-avatar-osc#readme"
+            );
+
+            githubButton.Click += (_, _) => OpenWebsite(
+                "https://github.com/Erallie/vrchat-avatar-osc"
+            );
+
+            issuesButton.Click += (_, _) => OpenWebsite(
+                "https://github.com/Erallie/vrchat-avatar-osc/issues"
+            );
+
+            aboutButtons.Controls.Add(documentationButton);
+            aboutButtons.Controls.Add(githubButton);
+            aboutButtons.Controls.Add(issuesButton);
+
+            aboutLayout.Controls.Add(aboutTitle, 0, 0);
+            aboutLayout.Controls.Add(aboutVersion, 0, 1);
+            aboutLayout.Controls.Add(aboutDescription, 0, 2);
+            aboutLayout.Controls.Add(featuresHeading, 0, 3);
+            aboutLayout.Controls.Add(featuresText, 0, 4);
+            aboutLayout.Controls.Add(requirementsHeading, 0, 5);
+            aboutLayout.Controls.Add(requirementsText, 0, 6);
+            aboutLayout.Controls.Add(aboutButtons, 0, 7);
+
+            aboutTab.Controls.Add(aboutLayout);
+
+            tabs.TabPages.Add(aboutTab);
             tabs.TabPages.Add(logTab);
             tabs.TabPages.Add(parametersTab);
             tabs.TabPages.Add(appSettingsTab);
@@ -632,6 +772,38 @@ class Program
             ShutdownApplication();
 
             base.OnFormClosing(e);
+        }
+
+        private static Label CreateAboutHeading(string text)
+        {
+            return new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Font = new Font(SystemFonts.MessageBoxFont, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 6)
+            };
+        }
+
+        private static void OpenWebsite(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    $"Could not open the webpage: {exception.Message}",
+                    "Open Webpage",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
         }
 
         private static NumericUpDown CreatePortInput(int value)
