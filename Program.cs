@@ -89,7 +89,7 @@ class Program
 
         public MainWindow()
         {
-            Text = "VRChat OSC Bridge";
+            Text = "VRChat Avatar OSC";
             Width = 850;
             Height = 550;
             StartPosition = FormStartPosition.CenterScreen;
