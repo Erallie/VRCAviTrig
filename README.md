@@ -18,6 +18,7 @@ It also includes a built-in log viewer, parameter logging controls, configurable
 ## Requirements
 
 * Windows
+* Software capable of sending UDP packets (e.g. [Streamer.bot](https://streamer.bot/)).
 * VRChat with OSC enabled
 * A VRChat avatar with parameters
 
