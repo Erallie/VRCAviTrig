@@ -201,7 +201,7 @@ Stores saved avatar parameter values.
 2. Launch VRChat Avatar OSC.
 3. Load your avatar.
 4. Allow VRChat to send parameter updates.
-5. Use your preferred automation software (such as Streamer.bot) to send UDP commands to this application.
+5. Use your preferred automation software (such as [Streamer.bot](https://streamer.bot/)) to send UDP commands to this application.
 6. Watch your avatar respond instantly.
 
 ## Default Ports
