@@ -40,7 +40,7 @@ Once a parameter has been seen, its current value is remembered. External progra
 
 This makes it easy to connect Twitch redeems, Streamer.bot actions, hardware buttons, custom software, or other automation systems to your avatar.
 
-**IMPORTANT NOTE:** You must *first* call `set` or `load` or *toggle the parameter manually* on your avatar for each parameter you want to *then* change with `toggle`, `random`, or `save`.
+**IMPORTANT NOTE:** You must *first* call `set` or `load` or **toggle the parameter manually** on your avatar for each parameter you want to *then* change with `toggle`, `random`, or `save`.
 
 ## Tabs
 
