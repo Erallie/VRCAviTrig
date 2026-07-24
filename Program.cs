@@ -60,6 +60,15 @@ class Program
         public HashSet<string> LoggedParameters { get; set; } = new(
             StringComparer.Ordinal
         );
+
+        public HashSet<string> ExcludedSaveParameters { get; set; } = new(
+            StringComparer.Ordinal
+        );
+
+        public HashSet<string> ExcludedSavePrefixes { get; set; } = new(
+            StringComparer.Ordinal
+        );
+
         public int VrChatReceivePort { get; set; } = 9001;
         public int VrChatSendPort { get; set; } = 9000;
         public int CommandPort { get; set; } = 8765;
@@ -68,7 +77,6 @@ class Program
         public bool CloseToTray { get; set; } = true;
         public bool StartWithWindows { get; set; } = false;
     }
-
     class MainWindow : Form
     {
         private readonly TextBox logTextBox;
@@ -86,6 +94,8 @@ class Program
         private readonly CheckBox startWithWindowsCheckBox;
         private readonly Button checkForUpdatesButton;
         private readonly Label updateStatusLabel;
+        private readonly TextBox excludedSaveParametersTextBox;
+        private readonly TextBox excludedSavePrefixesTextBox;
 
         public MainWindow()
         {
@@ -101,6 +111,7 @@ class Program
 
             TabPage logTab = new("Log");
             TabPage parametersTab = new("Parameter Logging");
+            TabPage saveExclusionsTab = new("Save Parameters");
             TabPage appSettingsTab = new("Settings");
             TabPage updatesTab = new("Updates");
             TabPage aboutTab = new("About");
@@ -599,9 +610,173 @@ class Program
 
             aboutTab.Controls.Add(aboutLayout);
 
+            TableLayoutPanel saveExclusionsLayout = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 7,
+                Padding = new Padding(20)
+            };
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 50f)
+            );
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 50f)
+            );
+
+            saveExclusionsLayout.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            Label saveExclusionsDescription = new()
+            {
+                AutoSize = true,
+                MaximumSize = new Size(760, 0),
+                Margin = new Padding(0, 0, 0, 12),
+                Text =
+                    "Parameters listed here will not be included when the save command " +
+                    "is called. Enter one parameter or directory prefix per line."
+            };
+
+            Label exactParametersLabel = new()
+            {
+                AutoSize = true,
+                Font = new Font(Font, FontStyle.Bold),
+                Text = "Exact parameter names",
+                Margin = new Padding(0, 0, 0, 6)
+            };
+
+            excludedSaveParametersTextBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
+                WordWrap = false,
+                Font = new Font("Consolas", 10f),
+                PlaceholderText =
+                    "Example:" + Environment.NewLine +
+                    "SomeParameter" + Environment.NewLine +
+                    "Menu/TemporaryValue"
+            };
+
+            Label prefixesLabel = new()
+            {
+                AutoSize = true,
+                Font = new Font(Font, FontStyle.Bold),
+                Text = "Directory or parameter prefixes",
+                Margin = new Padding(0, 12, 0, 6)
+            };
+
+            Label prefixesDescription = new()
+            {
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText,
+                MaximumSize = new Size(760, 0),
+                Margin = new Padding(0, 0, 0, 6),
+                Text =
+                    "For example, FT/ excludes every parameter whose name begins with FT/."
+            };
+
+            excludedSavePrefixesTextBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
+                WordWrap = false,
+                Font = new Font("Consolas", 10f),
+                PlaceholderText =
+                    "Example:" + Environment.NewLine +
+                    "FT/" + Environment.NewLine +
+                    "Tracking/"
+            };
+
+            Button saveExclusionsButton = new()
+            {
+                AutoSize = true,
+                Text = "Save Exclusions",
+                Padding = new Padding(8, 3, 8, 3),
+                Margin = new Padding(0, 12, 0, 0)
+            };
+
+            saveExclusionsButton.Click += (_, _) =>
+            {
+                SaveExclusionsFromControls();
+
+                MessageBox.Show(
+                    this,
+                    "Save exclusions have been updated.",
+                    "Exclusions Saved",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            };
+
+            saveExclusionsLayout.Controls.Add(
+                saveExclusionsDescription,
+                0,
+                0
+            );
+
+            saveExclusionsLayout.Controls.Add(
+                exactParametersLabel,
+                0,
+                1
+            );
+
+            saveExclusionsLayout.Controls.Add(
+                excludedSaveParametersTextBox,
+                0,
+                2
+            );
+
+            saveExclusionsLayout.Controls.Add(
+                prefixesLabel,
+                0,
+                3
+            );
+
+            saveExclusionsLayout.Controls.Add(
+                prefixesDescription,
+                0,
+                4
+            );
+
+            saveExclusionsLayout.Controls.Add(
+                excludedSavePrefixesTextBox,
+                0,
+                5
+            );
+
+            saveExclusionsLayout.Controls.Add(
+                saveExclusionsButton,
+                0,
+                6
+            );
+
+            saveExclusionsTab.Controls.Add(saveExclusionsLayout);
+
             tabs.TabPages.Add(aboutTab);
             tabs.TabPages.Add(logTab);
             tabs.TabPages.Add(parametersTab);
+            tabs.TabPages.Add(saveExclusionsTab);
             tabs.TabPages.Add(appSettingsTab);
             tabs.TabPages.Add(updatesTab);
             Controls.Add(tabs);
@@ -636,6 +811,7 @@ class Program
             };
 
             RefreshSettingsControls();
+            RefreshSaveExclusionsControls();
         }
 
         public void AppendLogLine(string line)
@@ -868,6 +1044,61 @@ class Program
             }
 
             checkForUpdatesButton.Enabled = enabled;
+        }
+
+        private void RefreshSaveExclusionsControls()
+        {
+            lock (settingsLock)
+            {
+                excludedSaveParametersTextBox.Lines =
+                    settings.ExcludedSaveParameters
+                        .OrderBy(
+                            parameter => parameter,
+                            StringComparer.Ordinal
+                        )
+                        .ToArray();
+
+                excludedSavePrefixesTextBox.Lines =
+                    settings.ExcludedSavePrefixes
+                        .OrderBy(
+                            prefix => prefix,
+                            StringComparer.Ordinal
+                        )
+                        .ToArray();
+            }
+        }
+
+        private void SaveExclusionsFromControls()
+        {
+            HashSet<string> excludedParameters = ParseExclusionLines(
+                excludedSaveParametersTextBox.Lines
+            );
+
+            HashSet<string> excludedPrefixes = ParseExclusionLines(
+                excludedSavePrefixesTextBox.Lines
+            );
+
+            lock (settingsLock)
+            {
+                settings.ExcludedSaveParameters = excludedParameters;
+                settings.ExcludedSavePrefixes = excludedPrefixes;
+
+                SaveSettings();
+            }
+
+            RefreshSaveExclusionsControls();
+        }
+
+        private static HashSet<string> ParseExclusionLines(
+            IEnumerable<string> lines
+        )
+        {
+            return new HashSet<string>(
+                lines
+                    .Select(line => line.Trim())
+                    .Where(line => !string.IsNullOrWhiteSpace(line)),
+                StringComparer.Ordinal
+            );
         }
     }
 
@@ -1371,16 +1602,26 @@ class Program
             StringComparer.Ordinal
         );
 
+        int excludedCount = 0;
+
         foreach (KeyValuePair<string, object> parameter in parameters)
         {
             if (
-                parameter.Value is bool ||
-                parameter.Value is int ||
-                parameter.Value is float
+                parameter.Value is not bool &&
+                parameter.Value is not int &&
+                parameter.Value is not float
             )
             {
-                savedParameters[parameter.Key] = parameter.Value;
+                continue;
             }
+
+            if (!ShouldSaveParameter(parameter.Key))
+            {
+                excludedCount++;
+                continue;
+            }
+
+            savedParameters[parameter.Key] = parameter.Value;
         }
 
         string json = JsonSerializer.Serialize(
@@ -1394,7 +1635,8 @@ class Program
         File.WriteAllText(saveFilePath, json);
 
         Console.WriteLine(
-            $"Saved {savedParameters.Count} parameter state(s)."
+            $"Saved {savedParameters.Count} parameter state(s). " +
+            $"Excluded {excludedCount} parameter(s)."
         );
     }
 
@@ -1491,6 +1733,24 @@ class Program
         }
     }
 
+    static bool ShouldSaveParameter(string parameter)
+    {
+        lock (settingsLock)
+        {
+            if (settings.ExcludedSaveParameters.Contains(parameter))
+            {
+                return false;
+            }
+
+            return !settings.ExcludedSavePrefixes.Any(
+                prefix => parameter.StartsWith(
+                    prefix,
+                    StringComparison.Ordinal
+                )
+            );
+        }
+    }
+
     static void SetLogAllParameters(bool logAll)
     {
         lock (settingsLock)
@@ -1533,6 +1793,16 @@ class Program
             {
                 loadedSettings.LoggedParameters = new HashSet<string>(
                     loadedSettings.LoggedParameters ?? [],
+                    StringComparer.Ordinal
+                );
+
+                loadedSettings.ExcludedSaveParameters = new HashSet<string>(
+                    loadedSettings.ExcludedSaveParameters ?? [],
+                    StringComparer.Ordinal
+                );
+
+                loadedSettings.ExcludedSavePrefixes = new HashSet<string>(
+                    loadedSettings.ExcludedSavePrefixes ?? [],
                     StringComparer.Ordinal
                 );
 
