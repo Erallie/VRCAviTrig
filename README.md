@@ -1,4 +1,4 @@
-# VRChat Avatar OSC
+# VRC AviTrig
 
 [![Latest Release](https://img.shields.io/github/release-date/Erallie/vrchat-avatar-osc?display_date=published_at&style=for-the-badge&label=Latest%20Release)](https://github.com/Erallie/vrchat-avatar-osc/releases/latest)
 ![Latest Downloads](https://img.shields.io/github/downloads/Erallie/vrchat-avatar-osc/latest/total?sort=semver&style=for-the-badge&label=Latest%20Downloads)
@@ -10,7 +10,7 @@
 
 ---
 
-A lightweight Windows utility for monitoring, controlling, and saving VRChat avatar OSC parameters.
+A lightweight Windows utility for triggering VRChat avatar OSC parameters.
 
 This application listens for OSC parameters sent by VRChat, keeps track of their current values, and lets you control them through simple UDP commands from external applications such as Streamer.bot, Twitch integrations, custom scripts, or your own software.
 
