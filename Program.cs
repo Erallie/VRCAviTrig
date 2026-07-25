@@ -1325,7 +1325,7 @@ class Program
 
         oscSender = new OscSender(
             IPAddress.Loopback,
-            9002,
+            0,
             settings.VrChatSendPort
         );
 
