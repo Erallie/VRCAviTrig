@@ -1,4 +1,4 @@
-# VRC AviTrig
+# VRCAviTrig
 
 [![Latest Release](https://img.shields.io/github/release-date/Erallie/vrchat-avatar-osc?display_date=published_at&style=for-the-badge&label=Latest%20Release)](https://github.com/Erallie/vrchat-avatar-osc/releases/latest)
 ![Latest Downloads](https://img.shields.io/github/downloads/Erallie/vrchat-avatar-osc/latest/total?sort=semver&style=for-the-badge&label=Latest%20Downloads)
