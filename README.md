@@ -36,7 +36,7 @@ It also includes a built-in log viewer, parameter logging controls, configurable
 
 ## Installation
 
-1. Go to the **[latest release](https://github.com/Erallie/vrchat-avatar-osc/releases/latest)**.
+1. Go to the **[latest release](https://github.com/Erallie/VRCAviTrig/releases/latest)**.
 2. Download **`GozarProductions.VRChatAvatarOSC-win-Setup.exe`** from the **Assets** section.
 3. Run the installer and follow the installation prompts.
 4. Launch **VRChat Avatar OSC** from the Start Menu or desktop shortcut.
@@ -241,4 +241,4 @@ No OSC knowledge is required—Streamer.bot only needs to send plain text comman
 
 ## Support
 
-If you have any problems with the app or want to request a feature, please create an [issue](https://github.com/Erallie/vrchat-avatar-osc/issues), and I will try to get to it as soon as I can!
+If you have any problems with the app or want to request a feature, please create an [issue](https://github.com/Erallie/VRCAviTrig/issues), and I will try to get to it as soon as I can!
