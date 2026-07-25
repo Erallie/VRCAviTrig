@@ -512,11 +512,13 @@ class Program
 
             Label aboutDescription = new()
             {
-                Text =
-                    "A lightweight Windows utility for triggering " +
-                    "VRChat avatar OSC parameters. It receives OSC " +
-                    "updates from VRChat and accepts simple UDP commands from " +
-                    "external applications such as Streamer.bot.",
+                Text = $"""
+                    A lightweight Windows utility for triggering VRChat avatar OSC parameters.
+
+                    This application listens for OSC parameters sent by VRChat, keeps track of their current values, and lets you control them through simple UDP commands from external applications such as Streamer.bot, Twitch integrations, custom scripts, or your own software.
+
+                    It's perfect for making Twitch redemptions trigger features on your avatar.
+                    """,
                 AutoSize = true,
                 MaximumSize = new Size(730, 0),
                 Margin = new Padding(0, 0, 0, 18)
@@ -547,10 +549,7 @@ class Program
                     "• Windows" + Environment.NewLine +
                     "• VRChat with OSC enabled" + Environment.NewLine +
                     "• A VRChat avatar with parameters" + Environment.NewLine +
-                    "• Software capable of sending UDP packets, such as Streamer.bot" +
-                    Environment.NewLine + Environment.NewLine +
-                    "Default ports: VRChat receive 9001, VRChat send 9000, " +
-                    "command listener 8765.",
+                    "• Software capable of sending UDP packets, such as Streamer.bot",
                 AutoSize = true,
                 MaximumSize = new Size(730, 0),
                 Margin = new Padding(0, 0, 0, 18)
@@ -588,6 +587,13 @@ class Program
                 Padding = new Padding(8, 3, 8, 3)
             };
 
+            Button donationButton = new()
+            {
+                Text = "Donate",
+                AutoSize = true,
+                Padding = new Padding(8, 3, 8, 3)
+            };
+
             documentationButton.Click += (_, _) => OpenWebsite(
                 "https://github.com/Erallie/vrchat-avatar-osc#readme"
             );
@@ -600,9 +606,14 @@ class Program
                 "https://github.com/Erallie/vrchat-avatar-osc/issues"
             );
 
+            donationButton.Click += (_, _) => OpenWebsite(
+                "https://ko-fi.com/GozarProductions"
+            );
+
             aboutButtons.Controls.Add(documentationButton);
             aboutButtons.Controls.Add(githubButton);
             aboutButtons.Controls.Add(issuesButton);
+            aboutButtons.Controls.Add(donationButton);
 
             aboutLayout.Controls.Add(aboutTitle, 0, 0);
             aboutLayout.Controls.Add(aboutVersion, 0, 1);
