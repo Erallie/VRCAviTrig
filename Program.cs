@@ -473,14 +473,32 @@ class Program
 
             updatesTab.Controls.Add(updatesLayout);
 
-            TableLayoutPanel aboutLayout = new()
+            Panel aboutScrollPanel = new()
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 1,
-                RowCount = 8,
-                Padding = new Padding(24),
                 AutoScroll = true
             };
+
+            TableLayoutPanel aboutLayout = new()
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 1,
+                RowCount = 7,
+                Padding = new Padding(24, 24, 24, 0)
+            };
+
+            aboutLayout.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f)
+            );
+
+            for (int i = 0; i < 7; i++)
+            {
+                aboutLayout.RowStyles.Add(
+                    new RowStyle(SizeType.AutoSize)
+                );
+            }
 
             aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -557,13 +575,13 @@ class Program
 
             FlowLayoutPanel aboutButtons = new()
             {
+                Dock = DockStyle.Bottom,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Top,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = true,
-                Margin = new Padding(0, 0, 0, 8),
-                Padding = new Padding(0, 0, 0, 4)
+                Padding = new Padding(24, 10, 24, 14),
+                Margin = new Padding(0)
             };
 
             Button documentationButton = new()
@@ -595,15 +613,15 @@ class Program
             };
 
             documentationButton.Click += (_, _) => OpenWebsite(
-                "https://github.com/Erallie/vrchat-avatar-osc#readme"
+                "https://github.com/Erallie/VRCAviTrig#readme"
             );
 
             githubButton.Click += (_, _) => OpenWebsite(
-                "https://github.com/Erallie/vrchat-avatar-osc"
+                "https://github.com/Erallie/VRCAviTrig"
             );
 
             issuesButton.Click += (_, _) => OpenWebsite(
-                "https://github.com/Erallie/vrchat-avatar-osc/issues"
+                "https://github.com/Erallie/VRCAviTrig/issues"
             );
 
             donationButton.Click += (_, _) => OpenWebsite(
@@ -622,9 +640,11 @@ class Program
             aboutLayout.Controls.Add(featuresText, 0, 4);
             aboutLayout.Controls.Add(requirementsHeading, 0, 5);
             aboutLayout.Controls.Add(requirementsText, 0, 6);
-            aboutLayout.Controls.Add(aboutButtons, 0, 7);
 
-            aboutTab.Controls.Add(aboutLayout);
+            aboutScrollPanel.Controls.Add(aboutLayout);
+
+            aboutTab.Controls.Add(aboutScrollPanel);
+            aboutTab.Controls.Add(aboutButtons);
 
             TableLayoutPanel saveParametersLayout = new()
             {
