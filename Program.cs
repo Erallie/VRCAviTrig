@@ -99,7 +99,7 @@ class Program
 
         public MainWindow()
         {
-            Text = "VRChat Avatar OSC";
+            Text = "VRCAviTrig";
             Width = 850;
             Height = 550;
             StartPosition = FormStartPosition.CenterScreen;
@@ -494,7 +494,7 @@ class Program
 
             Label aboutTitle = new()
             {
-                Text = "VRChat Avatar OSC",
+                Text = "VRCAviTrig",
                 AutoSize = true,
                 Font = new Font(Font.FontFamily, 18f, FontStyle.Bold),
                 Margin = new Padding(0, 0, 0, 2)
@@ -513,8 +513,8 @@ class Program
             Label aboutDescription = new()
             {
                 Text =
-                    "A lightweight Windows utility for monitoring, controlling, " +
-                    "and saving VRChat avatar OSC parameters. It receives OSC " +
+                    "A lightweight Windows utility for triggering " +
+                    "VRChat avatar OSC parameters. It receives OSC " +
                     "updates from VRChat and accepts simple UDP commands from " +
                     "external applications such as Streamer.bot.",
                 AutoSize = true,
@@ -1259,7 +1259,7 @@ class Program
         if (!createdNew)
         {
             MessageBox.Show(
-                "VRChat Avatar OSC Bridge is already running.",
+                "VRCAviTrig is already running.",
                 "Already Running",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information
@@ -1895,11 +1895,11 @@ class Program
         /*
          * Velopack keeps the real application inside:
          *
-         *     <installation folder>\current\VRChat Avatar OSC.exe
+         *     <installation folder>\current\VRCAviTrig.exe
          *
          * and creates a stable launcher at:
          *
-         *     <installation folder>\VRChat Avatar OSC.exe
+         *     <installation folder>\VRCAviTrig.exe
          *
          * The stable launcher survives updates, while the contents of
          * the "current" directory are replaced.
@@ -2038,7 +2038,7 @@ class Program
             );
 
             GithubSource source = new(
-                "https://github.com/Erallie/vrchat-avatar-osc",
+                "https://github.com/Erallie/VRCAviTrig",
                 accessToken: null,
                 prerelease: false
             );
