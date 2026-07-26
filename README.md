@@ -39,7 +39,7 @@ It also includes a built-in log viewer, parameter logging controls, configurable
 1. Go to the **[latest release](https://github.com/Erallie/VRCAviTrig/releases/latest)**.
 2. Download **`GozarProductions.VRChatAvatarOSC-win-Setup.exe`** from the **Assets** section.
 3. Run the installer and follow the installation prompts.
-4. Launch **VRChat Avatar OSC** from the Start Menu or desktop shortcut.
+4. Launch **VRCAviTrig** from the Start Menu or desktop shortcut.
 
 Future updates can be installed directly from within the application by using the **Updates** tab.
 
@@ -207,7 +207,7 @@ Stores saved avatar parameter values.
 ## Typical Workflow
 
 1. Start VRChat.
-2. Launch VRChat Avatar OSC.
+2. Launch VRCAviTrig.
 3. Load your avatar.
 4. Allow VRChat to send parameter updates.
 5. Use your preferred automation software (such as [Streamer.bot](https://streamer.bot/)) to send UDP commands to this application.
@@ -235,7 +235,7 @@ or
 random Outfit/Color 1 4
 ```
 
-to the application's Command Port.
+to the VRCAviTrig's **Command Port**.
 
 To know what parameter to set, you can toggle the feature on your avatar, and the VRCAviTrig log will tell you what parameter changed and to what value.
 
