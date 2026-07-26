@@ -216,7 +216,7 @@ class Program
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 9,
+                RowCount = 8,
                 Padding = new Padding(20),
                 AutoSize = true
             };
@@ -500,16 +500,6 @@ class Program
                 );
             }
 
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            aboutLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
-
             Label aboutTitle = new()
             {
                 Text = "VRCAviTrig",
@@ -530,13 +520,11 @@ class Program
 
             Label aboutDescription = new()
             {
-                Text = $"""
-                    A lightweight Windows utility for triggering VRChat avatar OSC parameters.
-
-                    This application listens for OSC parameters sent by VRChat, keeps track of their current values, and lets you control them through simple UDP commands from external applications such as Streamer.bot, Twitch integrations, custom scripts, or your own software.
-
-                    It's perfect for making Twitch redemptions trigger features on your avatar.
-                    """,
+                Text = "A lightweight Windows utility for triggering VRChat avatar OSC parameters."
+                    + Environment.NewLine + Environment.NewLine +
+                    "This application listens for OSC parameters sent by VRChat, keeps track of their current values, and lets you control them through simple UDP commands from external applications such as Streamer.bot, Twitch integrations, custom scripts, or your own software."
+                    + Environment.NewLine + Environment.NewLine +
+                    "It's perfect for making Twitch redemptions trigger features on your avatar.",
                 AutoSize = true,
                 MaximumSize = new Size(730, 0),
                 Margin = new Padding(0, 0, 0, 18)
