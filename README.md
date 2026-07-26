@@ -237,6 +237,8 @@ random Outfit/Color 1 4
 
 to the application's Command Port.
 
+To know what parameter to set, you can toggle the feature on your avatar, and the VRCAviTrig log will tell you what parameter changed and to what value.
+
 No OSC knowledge is required—Streamer.bot only needs to send plain text commands.
 
 ## Support
