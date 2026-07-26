@@ -235,7 +235,7 @@ or
 random Outfit/Color 1 4
 ```
 
-to the application's Command Port.
+to the VRCAviTrig's **Command Port**.
 
 To know what parameter to set, you can toggle the feature on your avatar, and the VRCAviTrig log will tell you what parameter changed and to what value.
 
