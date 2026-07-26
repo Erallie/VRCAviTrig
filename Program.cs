@@ -38,7 +38,7 @@ class Program
             Environment.SpecialFolder.LocalApplicationData
         ),
         "Gozar Productions",
-        "VRChat Avatar OSC"
+        "VRChat Avatar OSC" // Retained for compatibility with installations from before the VRCAviTrig rename.
     );
 
     static readonly string settingsFilePath = Path.Combine(
@@ -436,7 +436,7 @@ class Program
             Label updatesDescription = new()
             {
                 Text =
-                    "Check GitHub for a newer version of VRChat OSC Bridge. " +
+                    "Check GitHub for a newer version of VRCAviTrig. " +
                     "Updates are downloaded automatically, but you choose when " +
                     "to restart and install them.",
                 AutoSize = true,
@@ -1196,7 +1196,7 @@ class Program
         trayIcon = new NotifyIcon
         {
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath)!,
-            Text = "VRChat OSC Bridge",
+            Text = "VRCAviTrig",
             Visible = true
         };
 
@@ -1283,7 +1283,7 @@ class Program
 
         singleInstanceMutex = new Mutex(
             initiallyOwned: true,
-            name: @"Local\VRChatAvatarOSCBridge",
+            name: @"Local\VRChatAvatarOSCBridge", // Retained for compatibility with installations from before the VRCAviTrig rename.
             createdNew: out createdNew
         );
 
@@ -1331,7 +1331,7 @@ class Program
 
         oscSender.Connect();
 
-        Console.WriteLine("VRChat OSC Bridge started.");
+        Console.WriteLine("VRCAviTrig started.");
         Console.WriteLine(
             $"Listening for commands on UDP port {settings.CommandPort}."
         );
@@ -1902,8 +1902,18 @@ class Program
 
         string shortcutPath = Path.Combine(
             startupFolder,
+            "VRCAviTrig.lnk"
+        );
+
+        string legacyShortcutPath = Path.Combine(
+            startupFolder,
             "VRChat OSC Bridge.lnk"
         );
+
+        if (File.Exists(legacyShortcutPath))
+        {
+            File.Delete(legacyShortcutPath);
+        }
 
         if (!enabled)
         {
