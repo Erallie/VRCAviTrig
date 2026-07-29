@@ -485,7 +485,7 @@ class Program
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 1,
-                RowCount = 7,
+                RowCount = 8,
                 Padding = new Padding(24, 24, 24, 0)
             };
 
@@ -493,7 +493,7 @@ class Program
                 new ColumnStyle(SizeType.Percent, 100f)
             );
 
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < 8; i++)
             {
                 aboutLayout.RowStyles.Add(
                     new RowStyle(SizeType.AutoSize)
@@ -529,6 +529,135 @@ class Program
                 MaximumSize = new Size(730, 0),
                 Margin = new Padding(0, 0, 0, 18)
             };
+
+            TableLayoutPanel importantNote = new()
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Top,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = Color.FromArgb(255, 247, 214),
+                ForeColor = Color.FromArgb(80, 55, 0),
+                Padding = new Padding(14),
+                Margin = new Padding(0, 0, 0, 18),
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
+            };
+
+            importantNote.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100f)
+            );
+
+            importantNote.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            importantNote.RowStyles.Add(
+                new RowStyle(SizeType.AutoSize)
+            );
+
+            Label importantNoteHeading = new()
+            {
+                Text = "IMPORTANT NOTE",
+                AutoSize = true,
+                Font = new Font(Font, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, 6)
+            };
+
+            RichTextBox importantNoteText = new()
+            {
+                ReadOnly = true,
+                BorderStyle = BorderStyle.None,
+                BackColor = importantNote.BackColor,
+                ForeColor = importantNote.ForeColor,
+                DetectUrls = false,
+                ScrollBars = RichTextBoxScrollBars.None,
+                TabStop = false,
+                WordWrap = true,
+                Width = 700,
+                Height = 54,
+                Margin = new Padding(0)
+            };
+
+            Font normalFont = new(
+                importantNoteText.Font,
+                FontStyle.Regular
+            );
+
+            Font boldFont = new(
+                importantNoteText.Font,
+                FontStyle.Bold
+            );
+
+            Font italicFont = new(
+                importantNoteText.Font,
+                FontStyle.Italic
+            );
+
+            Font codeFont = new(
+                FontFamily.GenericMonospace,
+                importantNoteText.Font.Size,
+                FontStyle.Regular
+            );
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText("You must ");
+
+            importantNoteText.SelectionFont = italicFont;
+            importantNoteText.AppendText("first");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(" call ");
+
+            importantNoteText.SelectionFont = codeFont;
+            importantNoteText.AppendText("set");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(" or ");
+
+            importantNoteText.SelectionFont = codeFont;
+            importantNoteText.AppendText("load");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(" or toggle the parameter manually on your avatar for each parameter you want to ");
+
+            /* importantNoteText.SelectionFont = boldFont;
+            importantNoteText.AppendText("toggle the parameter manually");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(
+                " on your avatar for each parameter you want to "
+            ); */
+
+            importantNoteText.SelectionFont = italicFont;
+            importantNoteText.AppendText("then");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(" change with ");
+
+            importantNoteText.SelectionFont = codeFont;
+            importantNoteText.AppendText("toggle");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(", ");
+
+            importantNoteText.SelectionFont = codeFont;
+            importantNoteText.AppendText("random");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(", or ");
+
+            importantNoteText.SelectionFont = codeFont;
+            importantNoteText.AppendText("save");
+
+            importantNoteText.SelectionFont = normalFont;
+            importantNoteText.AppendText(".");
+
+            importantNoteText.SelectionStart = 0;
+            importantNoteText.SelectionLength = 0;
+
+            importantNote.Controls.Add(importantNoteHeading, 0, 0);
+            importantNote.Controls.Add(importantNoteText, 0, 1);
 
             Label featuresHeading = CreateAboutHeading("Key Features");
 
@@ -624,10 +753,11 @@ class Program
             aboutLayout.Controls.Add(aboutTitle, 0, 0);
             aboutLayout.Controls.Add(aboutVersion, 0, 1);
             aboutLayout.Controls.Add(aboutDescription, 0, 2);
-            aboutLayout.Controls.Add(featuresHeading, 0, 3);
-            aboutLayout.Controls.Add(featuresText, 0, 4);
-            aboutLayout.Controls.Add(requirementsHeading, 0, 5);
-            aboutLayout.Controls.Add(requirementsText, 0, 6);
+            aboutLayout.Controls.Add(importantNote, 0, 3);
+            aboutLayout.Controls.Add(featuresHeading, 0, 4);
+            aboutLayout.Controls.Add(featuresText, 0, 5);
+            aboutLayout.Controls.Add(requirementsHeading, 0, 6);
+            aboutLayout.Controls.Add(requirementsText, 0, 7);
 
             aboutScrollPanel.Controls.Add(aboutLayout);
 
